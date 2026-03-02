@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>みんなで〇〇王！</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="common.css">
+</head>
+<body>
+    <!-- 共通ヘッダー -->
+    <header id="header-container"></header>
+
+    <main class="p-4 sm:p-6 max-w-2xl mx-auto w-full">
+        <!-- アプリ説明セクション -->
+        <div class="card text-center fade-in">
+            <h1 class="text-3xl font-black text-red-500 mb-4 tracking-wider">みんなで<br>〇〇王！</h1>
+            <p class="text-gray-600 leading-relaxed mb-6 text-sm sm:text-base">
+                主役（〇〇王）の過去の面白エピソードや、マニアックな好みをクイズにして、みんなで誰が一番理解しているかを競うアプリです！<br><br>
+                幹事や主催者も、このシステムを使えば解答を知らずにプレイヤーとして一緒に参加して楽しむことができます。
+            </p>
+            <button id="btn-open-create-modal" class="btn btn-primary text-lg py-4">新しく「〇〇王」を作る！</button>
+        </div>
+
+        <!-- プロジェクト履歴セクション -->
+        <div class="card fade-in" style="animation-delay: 0.1s;">
+            <h2 class="text-xl font-bold text-gray-800 border-b border-gray-200 pb-2 mb-4">作成したプロジェクト履歴</h2>
+            <div id="history-container" class="space-y-3">
+                <p class="text-gray-500 text-center text-sm">作成履歴はありません。</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- 共通フッター -->
+    <footer id="footer-container"></footer>
+
+    <!-- プロジェクト作成モーダル -->
+    <div id="create-modal" class="modal-overlay hidden">
+        <div class="modal-content fade-in">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">プロジェクトを作成</h3>
+            <p class="text-sm text-gray-600 mb-4">主役の名前や、イベントのタイトルを入力してください。</p>
+            <input type="text" id="input-project-name" placeholder="例：田中王決定戦！" class="w-full p-3 border border-gray-300 rounded-lg mb-6 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500" maxlength="30">
+            
+            <div class="flex gap-3">
+                <button id="btn-cancel-create" class="btn btn-secondary flex-1">キャンセル</button>
+                <button id="btn-submit-create" class="btn btn-primary flex-1">作成する</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- URL発行完了モーダル -->
+    <div id="success-modal" class="modal-overlay hidden">
+        <div class="modal-content fade-in text-center">
+            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2">プロジェクト作成完了！</h3>
+            <p class="text-sm text-gray-600 mb-4">管理画面のURLが発行されました。<br>このURLは必ずメモして保管してください。</p>
+            
+            <div class="bg-gray-100 p-3 rounded-lg mb-4 text-left break-all">
+                <span id="display-admin-url" class="text-sm text-blue-600 font-mono"></span>
+            </div>
+            
+            <button id="btn-copy-url" class="btn btn-secondary mb-4 flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                URLをコピー
+            </button>
+            
+            <button id="btn-go-admin" class="btn btn-primary">管理画面へ進む</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, initCommonUI, showLoading, hideLoading, generateProjectCode, copyToClipboard } from './common.js';
+        import { doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initCommonUI();
+            loadHistory();
+
+            // DOM Elements
+            const modalCreate = document.getElementById('create-modal');
+            const modalSuccess = document.getElementById('success-modal');
+            const inputProjectName = document.getElementById('input-project-name');
+            const btnOpenCreate = document.getElementById('btn-open-create-modal');
+            const btnCancelCreate = document.getElementById('btn-cancel-create');
+            const btnSubmitCreate = document.getElementById('btn-submit-create');
+            
+            const displayUrl = document.getElementById('display-admin-url');
+            const btnCopyUrl = document.getElementById('btn-copy-url');
+            const btnGoAdmin = document.getElementById('btn-go-admin');
+            
+            let generatedAdminUrl = '';
+
+            // モーダル制御
+            btnOpenCreate.addEventListener('click', () => {
+                inputProjectName.value = '';
+                modalCreate.classList.remove('hidden');
+                setTimeout(() => inputProjectName.focus(), 100);
+            });
+
+            btnCancelCreate.addEventListener('click', () => {
+                modalCreate.classList.add('hidden');
+            });
+
+            // プロジェクト作成処理
+            btnSubmitCreate.addEventListener('click', async () => {
+                const projectName = inputProjectName.value.trim();
+                if (!projectName) {
+                    alert('プロジェクト名を入力してください。');
+                    return;
+                }
+
+                showLoading("プロジェクトを作成中...");
+                modalCreate.classList.add('hidden');
+
+                try {
+                    let projectCode = '';
+                    let isUnique = false;
+
+                    // 重複しないコードを生成・確認
+                    while (!isUnique) {
+                        projectCode = generateProjectCode();
+                        const docRef = doc(db, "projects", projectCode);
+                        const docSnap = await getDoc(docRef);
+                        if (!docSnap.exists()) {
+                            isUnique = true;
+                        }
+                    }
+
+                    // Firestoreへ初期データ保存
+                    const projectData = {
+                        projectName: projectName,
+                        createdAt: serverTimestamp(),
+                        questions: [],
+                        target_answers: {},
+                        game_state: {
+                            phase: "waiting", // waiting, title, rules, answer, scoring, result
+                            current_question_index: 0,
+                            selected_target: "",
+                            game_settings: {
+                                point_base: 10,
+                                point_step: 1,
+                                max_questions: 5,
+                                use_original: false
+                            }
+                        }
+                    };
+
+                    await setDoc(doc(db, "projects", projectCode), projectData);
+
+                    // Local Storageに履歴を保存
+                    saveToHistory(projectCode, projectName);
+                    loadHistory(); // 履歴UI更新
+
+                    // URL生成と表示
+                    const baseUrl = window.location.href.split('index.html')[0];
+                    generatedAdminUrl = `${baseUrl}admin.html?id=${projectCode}`;
+                    displayUrl.textContent = generatedAdminUrl;
+
+                    hideLoading();
+                    modalSuccess.classList.remove('hidden');
+
+                } catch (error) {
+                    console.error("Error creating project:", error);
+                    hideLoading();
+                    alert('エラーが発生しました。通信環境を確認してください。');
+                }
+            });
+
+            // コピー＆遷移ボタン
+            btnCopyUrl.addEventListener('click', () => {
+                copyToClipboard(generatedAdminUrl);
+            });
+
+            btnGoAdmin.addEventListener('click', () => {
+                window.location.href = generatedAdminUrl;
+            });
+        });
+
+        // --- Local Storage 履歴管理 ---
+        const HISTORY_KEY = 'qcda_quiz_king_history';
+
+        function saveToHistory(code, name) {
+            let history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+            const newItem = {
+                code: code,
+                name: name,
+                date: new Date().toISOString()
+            };
+            // 先頭に追加
+            history.unshift(newItem);
+            // 最大20件まで保持
+            if (history.length > 20) history = history.slice(0, 20);
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+        }
+
+        function loadHistory() {
+            const historyContainer = document.getElementById('history-container');
+            const history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+            
+            if (history.length === 0) {
+                historyContainer.innerHTML = '<p class="text-gray-500 text-center text-sm p-4">作成履歴はありません。</p>';
+                return;
+            }
+
+            historyContainer.innerHTML = '';
+            const baseUrl = window.location.href.split('index.html')[0];
+
+            history.forEach(item => {
+                const dateObj = new Date(item.date);
+                const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth()+1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}`;
+                
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100 hover:bg-red-50 transition-colors cursor-pointer';
+                itemDiv.innerHTML = `
+                    <div class="truncate pr-4">
+                        <div class="font-bold text-gray-800 truncate">${item.name}</div>
+                        <div class="text-xs text-gray-400">作成日: ${dateStr}</div>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                `;
+                
+                // 行クリックで管理画面へ遷移
+                itemDiv.addEventListener('click', () => {
+                    window.location.href = `${baseUrl}admin.html?id=${item.code}`;
+                });
+                
+                historyContainer.appendChild(itemDiv);
+            });
+        }
+    </script>
+</body>
+</html>
