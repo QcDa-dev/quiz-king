@@ -5,12 +5,12 @@ import { getFirestore, collection, doc, setDoc, getDoc, serverTimestamp } from "
 // --- Firebase Configuration ---
 // ※ご自身のFirebaseプロジェクトの設定に書き換えてください
 const firebaseConfig = {
-    apiKey: "AIzaSyXXXXXXXXXXXXXXXXXXXXXXX",
+    apiKey: "AIzaSyDJ-EniGHciDWkbMRVxNIoFWkj_Y0GVHks",
     authDomain: "qcda-quiz-king.firebaseapp.com",
     projectId: "qcda-quiz-king",
-    storageBucket: "qcda-quiz-king.appspot.com",
-    messagingSenderId: "1234567890",
-    appId: "1:1234567890:web:abcdef123456"
+    storageBucket: "qcda-quiz-king.firebasestorage.app",
+    messagingSenderId: "16513147629",
+    appId: "1:16513147629:web:36cd05b90e98ede11f22e4"
 };
 
 const app = initializeApp(firebaseConfig);
