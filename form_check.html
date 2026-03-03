@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>事前回答の確認 - みんなで〇〇王！</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="common.css">
+</head>
+<body>
+    <!-- 共通ヘッダー -->
+    <header id="header-container"></header>
+
+    <main class="p-4 sm:p-6 max-w-3xl mx-auto w-full hidden" id="main-container">
+        
+        <div class="mb-4">
+            <a id="back-to-admin" href="#" class="text-sm text-gray-500 hover:text-red-500 flex items-center transition-colors w-fit">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                管理画面へ戻る
+            </a>
+        </div>
+
+        <div class="card fade-in">
+            <h2 class="text-2xl font-black text-gray-800 mb-2 border-b border-gray-200 pb-3">事前回答の確認</h2>
+            <p class="text-sm text-gray-600 mb-6 leading-relaxed">
+                対象者（〇〇王）がフォームから送信した回答の一覧です。<br>
+                複数人が回答している場合は、採用する回答を1つ選んで確認・修正ができます。
+            </p>
+
+            <div id="answers-list" class="space-y-3">
+                <!-- JSで動的に生成 -->
+                <div class="text-center p-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                    <div class="w-12 h-12 text-gray-400 mx-auto mb-3">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <p class="text-gray-500 font-bold">まだ回答が送信されていません。</p>
+                    <p class="text-xs text-gray-400 mt-1">〇〇王本人が回答を送信すると、ここに自動で表示されます。</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 共通フッター -->
+    <footer id="footer-container" class="mt-auto"></footer>
+
+    <!-- 警告モーダル -->
+    <div id="warning-modal" class="modal-overlay hidden">
+        <div class="modal-content fade-in text-center !max-w-md">
+            <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2">ちょっと待って！</h3>
+            <p class="text-sm text-gray-600 mb-6 leading-relaxed">
+                この内容を確認・修正すると、問題の<span class="font-bold text-red-500">「正解」をすべて知ってしまう</span>ことになります。<br><br>
+                主催者であるあなたも当日プレイヤーとしてクイズを楽しみたい場合は、この先は見ないことを強くおすすめします！
+            </p>
+            
+            <div class="flex flex-col gap-3">
+                <button id="btn-cancel-view" class="btn btn-primary">見ないでおく（プレイヤーとして参加する）</button>
+                <button id="btn-confirm-view" class="btn bg-gray-200 text-gray-700 hover:bg-gray-300">回答を確認・修正する</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, initCommonUI, showLoading, hideLoading } from './common.js';
+        import { doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        let projectId = "";
+        let selectedTarget = "";
+        let unsubscribe = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initCommonUI();
+
+            // URLからプロジェクトIDを取得
+            const urlParams = new URLSearchParams(window.location.search);
+            projectId = urlParams.get('id');
+
+            if (!projectId) {
+                window.location.href = 'notfound.html';
+                return;
+            }
+
+            document.getElementById('back-to-admin').href = `admin.html?id=${projectId}`;
+
+            showLoading("回答データを読み込んでいます...");
+
+            // Firestoreの変更をリアルタイム監視
+            const docRef = doc(db, "projects", projectId);
+            unsubscribe = onSnapshot(docRef, (docSnap) => {
+                hideLoading();
+                document.getElementById('main-container').classList.remove('hidden');
+
+                if (!docSnap.exists()) {
+                    window.location.href = 'notfound.html';
+                    return;
+                }
+
+                const projectData = docSnap.data();
+                renderAnswersList(projectData.target_answers || {});
+            }, (error) => {
+                console.error("Error listening to document:", error);
+                hideLoading();
+                alert("データの取得に失敗しました。");
+            });
+
+            // モーダル制御
+            const modal = document.getElementById('warning-modal');
+            
+            document.getElementById('btn-cancel-view').addEventListener('click', () => {
+                modal.classList.add('hidden');
+                selectedTarget = "";
+            });
+
+            document.getElementById('btn-confirm-view').addEventListener('click', () => {
+                // 詳細画面へ遷移 (対象者の名前をエンコードしてURLに含める)
+                window.location.href = `form_detail.html?id=${projectId}&target=${encodeURIComponent(selectedTarget)}`;
+            });
+        });
+
+        // ページを離れる時にリスナーを解除
+        window.addEventListener('beforeunload', () => {
+            if (unsubscribe) unsubscribe();
+        });
+
+        // 回答一覧の描画
+        function renderAnswersList(targetAnswers) {
+            const listContainer = document.getElementById('answers-list');
+            const targetNames = Object.keys(targetAnswers);
+
+            if (targetNames.length === 0) {
+                // 未回答のまま
+                return;
+            }
+
+            listContainer.innerHTML = '';
+
+            targetNames.forEach(name => {
+                const answerData = targetAnswers[name];
+                // 実際に回答が入力された問題数をカウント（空欄でないもの）
+                let answeredCount = 0;
+                Object.values(answerData).forEach(val => {
+                    if (val && val.trim().length > 0) answeredCount++;
+                });
+
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:border-red-300 transition-colors gap-4';
+                
+                itemDiv.innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        </div>
+                        <div>
+                            <div class="font-bold text-gray-800 text-lg">${name} <span class="text-sm font-normal text-gray-500">さんの回答</span></div>
+                            <div class="text-xs text-gray-500 mt-1">回答済み: ${answeredCount}問</div>
+                        </div>
+                    </div>
+                    <button class="btn-open-warning btn btn-secondary !w-full sm:!w-auto !py-2 !px-5 text-sm font-bold whitespace-nowrap" data-name="${name}">
+                        確認・修正する
+                    </button>
+                `;
+
+                listContainer.appendChild(itemDiv);
+            });
+
+            // 「確認・修正する」ボタンにイベントを紐付け
+            document.querySelectorAll('.btn-open-warning').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    selectedTarget = e.currentTarget.getAttribute('data-name');
+                    document.getElementById('warning-modal').classList.remove('hidden');
+                });
+            });
+        }
+    </script>
+</body>
+</html>
