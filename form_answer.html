@@ -194,8 +194,9 @@
             const nameInput = document.getElementById('answer-0');
             const hasName = nameInput && nameInput.value.trim().length > 0;
 
-            inputs.forEach(input => {
-                if (input.value.trim().length > 0) {
+            // 名前問題 (idx === 0) はカウントに含めない
+            inputs.forEach((input, idx) => {
+                if (idx !== 0 && input.value.trim().length > 0) {
                     answeredCount++;
                 }
             });
