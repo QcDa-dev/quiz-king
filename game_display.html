@@ -317,6 +317,25 @@
             }
         }
 
+        // 回答送信数の更新
+        function updateAnswerCountUI() {
+            const totalPlayers = Object.keys(playersData).length;
+            let submittedCount = 0;
+            
+            Object.keys(playersData).forEach(playerId => {
+                const ansData = currentAnswersData[playerId];
+                if (ansData && ansData.question_index === currentQuestionIndex && typeof ansData.answer === 'string' && ansData.answer.trim().length > 0) {
+                    submittedCount++;
+                }
+            });
+
+            const totalEl = document.getElementById('answer-total-players');
+            const submitEl = document.getElementById('answer-submit-count');
+            
+            if (totalEl) totalEl.textContent = totalPlayers;
+            if (submitEl) submitEl.textContent = submittedCount;
+        }
+
         // 全角数字を半角に変換
         function toHalfWidth(str) {
             return str.replace(/[０-９]/g, function(s) {
