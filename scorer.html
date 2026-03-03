@@ -99,15 +99,8 @@
             </div>
 
             <!-- 各プレイヤーの回答一覧グリッド -->
-            <div id="scoring-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 w-full text-left mb-24">
+            <div id="scoring-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 w-full text-left mb-6">
                 <!-- JSで動的生成 -->
-            </div>
-
-            <!-- 次へ進むボタン（画面下部に固定配置） -->
-            <div class="fixed bottom-0 left-0 w-full bg-white p-4 shadow-[0_-4px_15px_rgba(0,0,0,0.1)] z-50">
-                <div class="max-w-4xl mx-auto flex justify-center">
-                    <button id="btn-next-question" class="btn btn-primary text-lg sm:text-xl py-4 shadow-md w-full max-w-md">次の問題へ進む</button>
-                </div>
             </div>
         </div>
 
@@ -126,6 +119,13 @@
         </div>
 
     </main>
+
+    <!-- 【修正】フェーズアニメーションの外に出して確実に画面下部に固定 -->
+    <div id="scoring-fixed-btn-area" class="fixed bottom-0 left-0 w-full bg-white p-4 shadow-[0_-4px_15px_rgba(0,0,0,0.1)] z-50 hidden">
+        <div class="max-w-4xl mx-auto flex justify-center">
+            <button id="btn-next-question" class="btn btn-primary text-lg sm:text-xl py-4 shadow-md w-full max-w-md">次の問題へ進む</button>
+        </div>
+    </div>
 
     <script type="module">
         import { db, initCommonUI, showLoading, hideLoading } from './common.js';
@@ -218,29 +218,29 @@
             if (currentPhase === 'waiting') {
                 statusText.textContent = "待機中";
                 document.getElementById('status-bar').classList.add('hidden');
+                document.getElementById('scoring-fixed-btn-area').classList.add('hidden');
             } else {
                 document.getElementById('status-bar').classList.remove('hidden');
             }
 
             if (currentPhase === 'title') {
                 statusText.textContent = "タイトル画面";
+                document.getElementById('scoring-fixed-btn-area').classList.add('hidden');
             }
             else if (currentPhase === 'rules') {
                 statusText.textContent = "ルール説明";
                 document.getElementById('rule-disp-q').textContent = gameSettings.max_questions;
                 document.getElementById('rule-disp-base').textContent = gameSettings.point_base;
                 document.getElementById('rule-disp-step').textContent = gameSettings.point_step;
+                document.getElementById('scoring-fixed-btn-area').classList.add('hidden');
             }
             else if (currentPhase === 'answer') {
                 statusText.textContent = `第${currentQuestionIndex + 1}問: 回答受付中`;
                 const qText = playQuestions[currentQuestionIndex] || "";
                 document.getElementById('answer-q-text').textContent = qText;
+                document.getElementById('scoring-fixed-btn-area').classList.add('hidden');
 
-                // 【追加】王の正解を取得して表示
-                let correctAnswer = "（本人に聞いてみましょう！）";
-                const origIdx = allProjectQuestions.indexOf(qText);
-                if (origIdx !== -1 && targetAnswers[targetName] && targetAnswers[targetName][origIdx] !== undefined) {
-                    correctAnswer = targetAnswers[targetName][origIdx];
+                // 王の正解を取得して表示
                     if (correctAnswer.trim() === "") correctAnswer = "（未回答）";
                 }
                 document.getElementById('answer-correct-preview').textContent = correctAnswer;
@@ -249,6 +249,7 @@
             }
             else if (currentPhase === 'scoring') {
                 statusText.textContent = `第${currentQuestionIndex + 1}問: 採点中`;
+                document.getElementById('scoring-fixed-btn-area').classList.remove('hidden');
                 
                 // 次のフェーズのボタンテキスト設定
                 if (currentQuestionIndex + 1 < gameSettings.max_questions) {
@@ -264,6 +265,7 @@
             }
             else if (currentPhase === 'result') {
                 statusText.textContent = "結果発表";
+                document.getElementById('scoring-fixed-btn-area').classList.add('hidden');
                 renderResultRanking();
             }
         }
@@ -330,6 +332,8 @@
                     ansClass = "text-gray-800 font-bold";
                 }
 
+                const currentVal = currentRoundScores[playerId] || 0; // 今回の問題の得点
+
                 let card = document.getElementById(`scorer-card-${playerId}`);
                 if (!card) {
                     card = document.createElement('div');
@@ -339,6 +343,7 @@
                     card.innerHTML = `
                         <div class="flex justify-between items-center mb-3 border-b border-gray-100 pb-2">
                             <div class="font-bold text-gray-700 text-lg truncate w-full player-name-text">${pName}</div>
+                            <div class="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded player-total-score ml-2 whitespace-nowrap">累計: ${pScore}pt</div>
                         </div>
                         <div class="flex-grow flex items-center justify-center p-2 text-center mb-4">
                             <span class="text-2xl ${ansClass} break-all player-answer-text">${pAnswer}</span>
@@ -350,10 +355,10 @@
                             </button>
                             
                             <div class="flex items-center justify-between gap-1 w-full mt-1">
-                                <span class="text-xs font-bold text-gray-600">累計</span>
+                                <span class="text-xs font-bold text-gray-600">今回の<br>得点</span>
                                 <div class="flex items-center gap-1">
                                     <button class="btn-minus bg-white border border-gray-300 text-gray-700 font-bold w-10 h-10 sm:w-12 sm:h-12 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-xl sm:text-2xl">-</button>
-                                    <input type="text" class="score-input w-16 h-10 sm:w-20 sm:h-12 border border-gray-300 rounded text-center font-bold text-lg sm:text-xl focus:outline-none focus:border-red-500" data-id="${playerId}" value="${pScore}">
+                                    <input type="text" class="score-input w-16 h-10 sm:w-20 sm:h-12 border border-gray-300 rounded text-center font-bold text-lg sm:text-xl focus:outline-none focus:border-red-500" data-id="${playerId}" value="${currentVal}">
                                     <button class="btn-plus bg-white border border-gray-300 text-gray-700 font-bold w-10 h-10 sm:w-12 sm:h-12 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-xl sm:text-2xl">+</button>
                                 </div>
                             </div>
@@ -382,6 +387,7 @@
                 } else {
                     // 既存カードの更新
                     card.querySelector('.player-name-text').textContent = pName;
+                    card.querySelector('.player-total-score').textContent = `累計: ${pScore}pt`;
                     const answerDiv = card.querySelector('.player-answer-text');
                     answerDiv.className = `text-2xl ${ansClass} break-all player-answer-text`;
                     answerDiv.textContent = pAnswer;
@@ -391,38 +397,47 @@
 
                     const input = card.querySelector('.score-input');
                     if (document.activeElement !== input) {
-                        input.value = pScore; // 常に最新の累積点数を表示
+                        input.value = currentVal; // 今回のスコアを表示
                     }
                 }
             });
         }
 
-        // 得点調整ロジック（ローカルステートとFirestoreの同期：累積値として処理）
+        // 得点調整ロジック（ローカルで今回の得点を持ち、Firestoreには累計の差分を積算する）
         async function adjustScore(playerId, amount) {
-            const currentVal = playersData[playerId].total_score || 0;
+            const currentVal = currentRoundScores[playerId] || 0;
             const newVal = currentVal + amount;
+            const diff = amount; // 差分
             
-            // 連続タップ時のラグ対策でローカルデータを即時更新
-            playersData[playerId].total_score = newVal;
+            currentRoundScores[playerId] = newVal; // ローカル状態を更新
             
             const input = document.querySelector(`.score-input[data-id="${playerId}"]`);
             if (input) input.value = newVal;
 
             try {
                 const ref = doc(db, "projects", projectId, "players", playerId);
-                await updateDoc(ref, { total_score: newVal });
+                await updateDoc(ref, { total_score: increment(diff) });
             } catch (e) {
                 console.error(e);
             }
         }
 
         async function updatePlayerScoreDirectly(playerId, newValue) {
-            playersData[playerId].total_score = newValue;
-            try {
-                const ref = doc(db, "projects", projectId, "players", playerId);
-                await updateDoc(ref, { total_score: newValue });
-            } catch (e) {
-                console.error(e);
+            const currentVal = currentRoundScores[playerId] || 0;
+            const diff = newValue - currentVal; // 直接入力時の差分を計算
+            
+            currentRoundScores[playerId] = newValue;
+            
+            const input = document.querySelector(`.score-input[data-id="${playerId}"]`);
+            if (input) input.value = newValue;
+
+            if (diff !== 0) {
+                try {
+                    const ref = doc(db, "projects", projectId, "players", playerId);
+                    await updateDoc(ref, { total_score: increment(diff) });
+                } catch (e) {
+                    console.error(e);
+                }
             }
         }
 
@@ -475,15 +490,19 @@
         document.getElementById('btn-next-answer').addEventListener('click', () => advancePhase('answer', 0));
 
         document.getElementById('btn-close-answer').addEventListener('click', () => {
-            const total = Object.keys(playersData).length;
-            let submitted = parseInt(document.getElementById('answer-submit-count').textContent, 10) || 0;
+            const totalPlayers = Object.keys(playersData).length;
+            let submittedCount = parseInt(document.getElementById('answer-submit-count').textContent, 10) || 0;
 
-            if (submitted < total) {
-                if (!confirm(`まだ回答していないプレイヤーが ${total - submitted} 人います。\n締め切って採点に進みますか？`)) {
+            if (submittedCount < totalPlayers) {
+                if (!confirm(`まだ回答していないプレイヤーが ${totalPlayers - submittedCount} 人います。\n締め切って採点に進みますか？`)) {
                     return;
                 }
             }
             
+            // 採点フェーズに入る前に「今回の得点」をリセットする
+            currentRoundScores = {};
+            Object.keys(playersData).forEach(id => { currentRoundScores[id] = 0; });
+
             advancePhase('scoring');
         });
 
