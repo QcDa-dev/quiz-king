@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>見つかりません - みんなで〇〇王！</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="common.css">
+</head>
+<body>
+    <!-- 共通ヘッダー -->
+    <header id="header-container"></header>
+
+    <main class="p-4 sm:p-6 max-w-lg mx-auto w-full flex flex-col justify-center" style="min-height: 60vh;">
+        <div class="card text-center fade-in shadow-lg">
+            <div class="text-gray-300 mb-6">
+                <svg class="w-24 h-24 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-800 mb-4">プロジェクトが存在しません</h1>
+            <p class="text-gray-600 mb-8 leading-relaxed">
+                アクセスしようとしたプロジェクトは存在しないか、<br class="hidden sm:block">既に削除されています。<br>
+                新しく「〇〇王」を作って遊んでね！
+            </p>
+            <a href="index.html" class="btn btn-primary block w-full py-4 text-lg">トップページへ戻る</a>
+        </div>
+    </main>
+
+    <!-- 共通フッター -->
+    <footer id="footer-container"></footer>
+
+    <script type="module">
+        import { initCommonUI } from './common.js';
+        document.addEventListener('DOMContentLoaded', () => {
+            initCommonUI();
+        });
+    </script>
+</body>
+</html>
