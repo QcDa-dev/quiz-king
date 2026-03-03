@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理ダッシュボード - みんなで〇〇王！</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="common.css">
+</head>
+<body>
+    <!-- 共通ヘッダー -->
+    <header id="header-container"></header>
+
+    <main class="p-4 sm:p-6 max-w-2xl mx-auto w-full hidden" id="main-container">
+        <!-- 基本情報セクション -->
+        <div class="card fade-in relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-2 h-full bg-red-500"></div>
+            <h2 class="text-2xl font-black text-gray-800 mb-1 pl-2" id="project-name-display">読み込み中...</h2>
+            <p class="text-sm text-gray-500 mb-5 pl-2">プロジェクト管理ダッシュボード</p>
+            
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <p class="text-xs font-bold text-gray-600 mb-2 flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                    管理画面URL (このページ)
+                </p>
+                <div class="flex items-center gap-2">
+                    <span id="admin-url-display" class="text-sm text-blue-600 font-mono break-all flex-1 bg-white p-2 rounded border border-gray-200"></span>
+                    <button id="btn-copy-url" class="btn btn-secondary !w-auto !py-2 !px-4 flex-shrink-0 text-sm shadow-sm">コピー</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ナビゲーションメニュー -->
+        <div class="space-y-4 fade-in" style="animation-delay: 0.1s;">
+            
+            <a id="btn-form-setup" class="block bg-white rounded-xl p-5 shadow-sm border-2 border-transparent hover:border-red-200 hover:shadow-md transition-all cursor-pointer text-decoration-none group">
+                <div class="flex items-start">
+                    <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4 group-hover:bg-red-500 transition-colors">
+                        <svg class="w-6 h-6 text-red-500 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-bold text-gray-800">1. 事前回答用フォームを発行する</h3>
+                        <p class="text-sm text-gray-600 mt-1 leading-relaxed">〇〇王本人に答えてもらうクイズの質問とジャンルを設定し、回答入力用のURLを発行します。</p>
+                    </div>
+                    <svg class="w-6 h-6 text-gray-300 self-center group-hover:text-red-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </div>
+            </a>
+
+            <a id="btn-form-check" class="block bg-white rounded-xl p-5 shadow-sm border-2 border-transparent hover:border-red-200 hover:shadow-md transition-all cursor-pointer text-decoration-none group">
+                <div class="flex items-start">
+                    <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4 group-hover:bg-red-500 transition-colors">
+                        <svg class="w-6 h-6 text-red-500 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-bold text-gray-800">2. 事前回答を確認・修正する</h3>
+                        <p class="text-sm text-gray-600 mt-1 leading-relaxed">本人が回答した内容の確認や、誤字脱字の修正を行います。（※主催者がプレイヤー参加する場合は見ない方が楽しめます）</p>
+                    </div>
+                    <svg class="w-6 h-6 text-gray-300 self-center group-hover:text-red-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </div>
+            </a>
+
+            <a id="btn-game-setup" class="block bg-white rounded-xl p-5 shadow-sm border-2 border-transparent hover:border-red-200 hover:shadow-md transition-all cursor-pointer text-decoration-none group">
+                <div class="flex items-start">
+                    <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4 group-hover:bg-red-500 transition-colors">
+                        <svg class="w-6 h-6 text-red-500 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-bold text-gray-800">3. ゲームを進行する</h3>
+                        <p class="text-sm text-gray-600 mt-1 leading-relaxed">当日、プレイヤーを招待し、配点や出題数を設定して「〇〇王」クイズ大会をスタートします！</p>
+                    </div>
+                    <svg class="w-6 h-6 text-gray-300 self-center group-hover:text-red-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </div>
+            </a>
+        </div>
+
+        <!-- 削除ボタン -->
+        <div class="mt-12 text-center fade-in" style="animation-delay: 0.2s;">
+            <button id="btn-delete-project" class="text-red-500 hover:text-red-700 underline text-sm font-bold px-4 py-2 rounded transition-colors hover:bg-red-50">
+                このプロジェクトを完全に削除する
+            </button>
+        </div>
+    </main>
+
+    <!-- 共通フッター -->
+    <footer id="footer-container"></footer>
+
+    <!-- 削除確認モーダル -->
+    <div id="delete-modal" class="modal-overlay hidden">
+        <div class="modal-content fade-in">
+            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2 text-center">本当に削除しますか？</h3>
+            <p class="text-sm text-gray-600 mb-6 text-center">
+                この操作は取り消せません。<br>事前回答のデータなどもすべて消去されます。
+            </p>
+            <div class="flex gap-3">
+                <button id="btn-cancel-delete" class="btn btn-secondary flex-1">キャンセル</button>
+                <button id="btn-confirm-delete" class="btn !bg-red-600 hover:!bg-red-700 text-white flex-1">削除する</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, initCommonUI, showLoading, hideLoading, copyToClipboard } from './common.js';
+        import { doc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            initCommonUI();
+            
+            // URLからプロジェクトIDを取得
+            const urlParams = new URLSearchParams(window.location.search);
+            const projectId = urlParams.get('id');
+
+            // IDがなければnotfoundへ
+            if (!projectId) {
+                window.location.href = 'notfound.html';
+                return;
+            }
+
+            showLoading("プロジェクトデータを読み込み中...");
+
+            try {
+                // Firestoreからプロジェクトデータを取得
+                const docRef = doc(db, "projects", projectId);
+                const docSnap = await getDoc(docRef);
+
+                // ドキュメントが存在しない場合（削除済みなど）
+                if (!docSnap.exists()) {
+                    removeFromHistory(projectId); // 念のため履歴からも消す
+                    window.location.href = 'notfound.html';
+                    return;
+                }
+
+                // UIの更新
+                const projectData = docSnap.data();
+                document.getElementById('project-name-display').textContent = projectData.projectName;
+                
+                const currentUrl = window.location.href;
+                document.getElementById('admin-url-display').textContent = currentUrl;
+                
+                // コピーボタン
+                document.getElementById('btn-copy-url').addEventListener('click', () => {
+                    copyToClipboard(currentUrl, "管理画面のURLをコピーしました！\nLINEなどで共有してください。");
+                });
+
+                // 各画面へのリンク設定
+                document.getElementById('btn-form-setup').href = `form_setup.html?id=${projectId}`;
+                document.getElementById('btn-form-check').href = `form_check.html?id=${projectId}`;
+                document.getElementById('btn-game-setup').href = `game_setup.html?id=${projectId}`;
+
+                // コンテンツを表示
+                document.getElementById('main-container').classList.remove('hidden');
+                hideLoading();
+
+            } catch (error) {
+                console.error("Error fetching project:", error);
+                hideLoading();
+                alert('通信エラーが発生しました。リロードして再度お試しください。');
+            }
+
+            // --- 削除モーダル制御 ---
+            const deleteModal = document.getElementById('delete-modal');
+            
+            document.getElementById('btn-delete-project').addEventListener('click', () => {
+                deleteModal.classList.remove('hidden');
+            });
+            
+            document.getElementById('btn-cancel-delete').addEventListener('click', () => {
+                deleteModal.classList.add('hidden');
+            });
+
+            document.getElementById('btn-confirm-delete').addEventListener('click', async () => {
+                showLoading("プロジェクトを削除中...");
+                deleteModal.classList.add('hidden');
+
+                try {
+                    // Firestoreから削除
+                    await deleteDoc(doc(db, "projects", projectId));
+                    
+                    // Local Storageの履歴からも削除
+                    removeFromHistory(projectId);
+                    
+                    // メイン画面へ戻る
+                    alert('プロジェクトを削除しました。');
+                    window.location.href = 'index.html';
+                } catch (error) {
+                    console.error("Error deleting project:", error);
+                    hideLoading();
+                    alert('削除に失敗しました。');
+                }
+            });
+        });
+
+        // 履歴から削除する関数
+        function removeFromHistory(code) {
+            const HISTORY_KEY = 'qcda_quiz_king_history';
+            let history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+            history = history.filter(item => item.code !== code);
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+        }
+    </script>
+</body>
+</html>
