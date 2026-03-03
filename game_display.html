@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ゲーム画面 - みんなで〇〇王！</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        /* プロジェクター用特化スタイル */
+        body { background-color: #f3f4f6; overflow-x: hidden; }
+        .phase-container {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 2rem;
+            text-align: center;
+            width: 100%;
+        }
+        .phase-container.active {
+            display: flex;
+            animation: fadeInPhase 0.5s ease-out forwards;
+        }
+        
+        @keyframes fadeInPhase {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* 結果発表用アニメーション */
+        .result-item { opacity: 0; }
+        #phase-result.active .result-item {
+            animation: slideUpFade 0.8s ease-out forwards;
+        }
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 回答カードのスタイル */
+        .answer-card {
+            background: white; border-radius: 16px; padding: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-top: 6px solid #ef4444;
+            display: flex; flex-direction: column; height: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Waiting Phase -->
+    <div id="phase-waiting" class="phase-container active bg-gray-100">
+        <div class="animate-pulse">
+            <svg class="w-24 h-24 mx-auto text-gray-300 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <h1 class="text-4xl md:text-5xl font-black text-gray-400 tracking-wider">ゲーム開始をお待ちください...</h1>
+        </div>
+    </div>
+
+    <!-- Title Phase -->
+    <div id="phase-title" class="phase-container bg-red-500 text-white">
+        <h1 class="text-7xl md:text-9xl font-black mb-8 tracking-widest drop-shadow-2xl">
+            <span id="title-target-name" class="text-yellow-300">〇〇</span>王
+        </h1>
+        <h2 class="text-5xl md:text-7xl font-bold drop-shadow-xl border-t-4 border-red-400 pt-8 inline-block px-12">決定戦！</h2>
+    </div>
+
+    <!-- Rules Phase -->
+    <div id="phase-rules" class="phase-container bg-gray-800 text-white">
+        <h2 class="text-5xl md:text-6xl font-black mb-12 text-yellow-400 tracking-wider">📝 ルール説明</h2>
+        <div class="text-3xl md:text-5xl space-y-10 text-left bg-gray-700 p-12 md:p-16 rounded-3xl shadow-2xl border border-gray-600">
+            <p class="flex items-center"><span class="w-16">🎯</span> 全 <span id="rule-max-questions" class="text-red-400 font-bold mx-4 text-5xl md:text-7xl">?</span> 問</p>
+            <p class="flex items-center"><span class="w-16">✨</span> 1問正解につき <span id="rule-base-point" class="text-red-400 font-bold mx-4 text-5xl md:text-7xl">?</span> 点</p>
+            <p class="flex items-center text-2xl md:text-4xl text-gray-300 mt-4"><span class="w-16">💡</span> 主役の判定により <span id="rule-step-point" class="text-yellow-400 font-bold mx-2">?</span> 点刻みで部分点・おまけ点あり！</p>
+        </div>
+    </div>
+
+    <!-- Answer Phase -->
+    <div id="phase-answer" class="phase-container bg-gray-50">
+        <div class="w-full max-w-6xl mx-auto">
+            <div class="mb-8">
+                <span class="bg-red-500 text-white text-3xl font-bold px-8 py-3 rounded-full shadow-md">
+                    第 <span id="answer-q-num">1</span> 問
+                </span>
+            </div>
+            <div class="bg-white p-12 md:p-20 rounded-[2rem] shadow-xl mb-12 border-4 border-gray-100 min-h-[300px] flex items-center justify-center">
+                <h2 id="answer-q-text" class="text-4xl md:text-6xl font-black text-gray-800 leading-snug">問題文がここに入ります</h2>
+            </div>
+            
+            <div class="inline-flex items-center bg-gray-800 text-white rounded-full px-10 py-5 text-3xl font-bold shadow-xl">
+                <svg class="w-10 h-10 mr-4 text-green-400 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                回答送信済み： <span id="answer-submit-count" class="text-yellow-400 mx-3 text-5xl">0</span> / <span id="answer-total-players" class="mx-3 text-4xl">0</span> 人
+            </div>
+        </div>
+    </div>
+
+    <!-- Scoring Phase -->
+    <div id="phase-scoring" class="phase-container items-start justify-start pt-12 pb-24 bg-red-50">
+        <div class="w-full max-w-7xl mx-auto px-4">
+            
+            <div class="mb-6 text-left">
+                <span class="bg-red-500 text-white text-2xl font-bold px-6 py-2 rounded-full shadow-sm">
+                    第 <span id="score-q-num">1</span> 問 の正解は...
+                </span>
+            </div>
+
+            <!-- 問題文と正解のエリア -->
+            <div class="bg-white p-8 md:p-10 rounded-3xl shadow-lg mb-12 border-l-[12px] border-red-500 text-left">
+                <p id="score-q-text" class="text-2xl md:text-3xl font-bold text-gray-600 mb-6 border-b border-gray-100 pb-4">問題文がここに入ります</p>
+                <div class="bg-red-50 p-6 md:p-8 rounded-2xl border border-red-200">
+                    <p class="text-lg md:text-xl font-bold text-red-500 mb-2">👑 <span class="score-target-name">〇〇</span> 王の正解：</p>
+                    <p id="score-correct-answer" class="text-4xl md:text-5xl font-black text-gray-800 leading-tight">正解がここに入ります</p>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between mb-6">
+                <h4 class="text-3xl font-black text-gray-700">みんなの回答</h4>
+                <div class="text-gray-500 font-bold">採点役が点数をつけています...</div>
+            </div>
+
+            <!-- 各プレイヤーの回答一覧グリッド -->
+            <div id="players-answers-grid" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 w-full text-left">
+                <!-- JSで動的生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Phase -->
+    <div id="phase-result" class="phase-container bg-gradient-to-br from-yellow-50 to-yellow-100 py-12 block">
+        <div class="w-full max-w-7xl mx-auto text-center">
+            <h2 class="text-5xl md:text-7xl font-black text-yellow-600 mb-16 drop-shadow-md">🏆 最終結果発表 🏆</h2>
+            
+            <!-- 表彰台エリア -->
+            <div class="flex flex-row justify-center items-end gap-4 md:gap-8 mb-20 h-80" id="podium-container">
+                <!-- 2位 -->
+                <div class="flex flex-col items-center w-32 md:w-56 result-item" style="animation-delay: 1.5s;">
+                    <div class="text-2xl md:text-3xl font-bold text-gray-700 mb-2 truncate w-full px-2" id="rank-2-name">-</div>
+                    <div class="text-3xl md:text-4xl font-black text-gray-800 mb-3"><span id="rank-2-score">0</span><span class="text-xl">pt</span></div>
+                    <div class="w-full bg-gray-300 rounded-t-xl flex items-center justify-center text-5xl font-black text-white h-40 shadow-inner border-t-4 border-gray-200">2</div>
+                </div>
+                <!-- 1位 -->
+                <div class="flex flex-col items-center w-40 md:w-64 result-item" style="animation-delay: 2.5s;">
+                    <div class="text-5xl mb-3 animate-bounce">👑</div>
+                    <div class="text-3xl md:text-4xl font-black text-red-600 mb-2 truncate w-full px-2" id="rank-1-name">-</div>
+                    <div class="text-4xl md:text-5xl font-black text-gray-800 mb-3"><span id="rank-1-score">0</span><span class="text-xl">pt</span></div>
+                    <div class="w-full bg-yellow-400 rounded-t-xl flex items-center justify-center text-7xl font-black text-white h-56 shadow-inner border-t-4 border-yellow-300">1</div>
+                </div>
+                <!-- 3位 -->
+                <div class="flex flex-col items-center w-32 md:w-56 result-item" style="animation-delay: 0.5s;">
+                    <div class="text-2xl md:text-3xl font-bold text-gray-700 mb-2 truncate w-full px-2" id="rank-3-name">-</div>
+                    <div class="text-3xl md:text-4xl font-black text-gray-800 mb-3"><span id="rank-3-score">0</span><span class="text-xl">pt</span></div>
+                    <div class="w-full bg-orange-300 rounded-t-xl flex items-center justify-center text-5xl font-black text-white h-32 shadow-inner border-t-4 border-orange-200">3</div>
+                </div>
+            </div>
+
+            <!-- 4位以下 -->
+            <div class="bg-white rounded-3xl shadow-xl p-8 md:p-12 max-w-4xl mx-auto result-item" style="animation-delay: 3.5s;">
+                <h3 class="text-3xl font-bold text-gray-700 mb-8 border-b-2 border-gray-100 pb-4">総合ランキング</h3>
+                <div id="ranking-list" class="space-y-4 text-left text-xl">
+                    <!-- JSで動的生成 -->
+                </div>
+            </div>
+            
+            <div class="mt-16 result-item" style="animation-delay: 5s;">
+                <p class="text-2xl text-gray-500 font-bold">ご参加ありがとうございました！</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db } from './common.js';
+        import { doc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const projectId = urlParams.get('id');
+
+        if (!projectId) {
+            window.location.href = 'notfound.html';
+        }
+
+        // 状態管理変数
+        let currentPhase = "";
+        let currentQuestionIndex = 0;
+        let playQuestions = [];
+        let allProjectQuestions = [];
+        let targetAnswers = {};
+        let targetName = "";
+        
+        let playersData = {};
+        let currentAnswersData = {};
+
+        // 1. プロジェクト状態の監視
+        onSnapshot(doc(db, "projects", projectId), (docSnap) => {
+            if (!docSnap.exists()) return;
+            const data = docSnap.data();
+            const state = data.game_state;
+
+            if (!state) return;
+
+            // 基本情報の更新
+            playQuestions = state.play_questions || [];
+            allProjectQuestions = data.questions || [];
+            targetAnswers = data.target_answers || {};
+            targetName = state.selected_target || "〇〇";
+
+            // フェーズや問題番号が変わった時のみUIを大きく更新
+            if (currentPhase !== state.phase || currentQuestionIndex !== state.current_question_index) {
+                currentPhase = state.phase;
+                currentQuestionIndex = state.current_question_index;
+                updatePhaseUI(state);
+            }
+        });
+
+        // 2. プレイヤー情報の監視
+        onSnapshot(collection(db, "projects", projectId, "players"), (snap) => {
+            playersData = {};
+            snap.forEach(doc => { playersData[doc.id] = doc.data(); });
+            
+            if(currentPhase === 'answer') updateAnswerCountUI();
+            if(currentPhase === 'scoring') updateScoringGrid();
+            if(currentPhase === 'result') updateResultUI();
+        });
+
+        // 3. 現在の回答の監視
+        onSnapshot(collection(db, "projects", projectId, "current_answers"), (snap) => {
+            currentAnswersData = {};
+            snap.forEach(doc => { currentAnswersData[doc.id] = doc.data(); });
+            
+            if(currentPhase === 'answer') updateAnswerCountUI();
+            if(currentPhase === 'scoring') updateScoringGrid();
+        });
+
+        // --- UI更新ロジック ---
+
+        function switchPhaseContainer(phaseId) {
+            document.querySelectorAll('.phase-container').forEach(el => el.classList.remove('active'));
+            const target = document.getElementById('phase-' + phaseId);
+            if(target) target.classList.add('active');
+        }
+
+        function updatePhaseUI(state) {
+            switchPhaseContainer(state.phase);
+
+            // 共通箇所（名前）
+            document.getElementById('title-target-name').textContent = targetName;
+            document.querySelectorAll('.score-target-name').forEach(el => el.textContent = targetName);
+
+            if (state.phase === 'rules') {
+                document.getElementById('rule-max-questions').textContent = state.game_settings.max_questions;
+                document.getElementById('rule-base-point').textContent = state.game_settings.point_base;
+                document.getElementById('rule-step-point').textContent = state.game_settings.point_step;
+            }
+            else if (state.phase === 'answer') {
+                document.getElementById('answer-q-num').textContent = currentQuestionIndex + 1;
+                document.getElementById('answer-q-text').textContent = playQuestions[currentQuestionIndex] || "";
+                updateAnswerCountUI();
+            }
+            else if (state.phase === 'scoring') {
+                const qText = playQuestions[currentQuestionIndex] || "";
+                document.getElementById('score-q-num').textContent = currentQuestionIndex + 1;
+                document.getElementById('score-q-text').textContent = qText;
+                
+                // 正解の特定
+                let correctAnswer = "🎙 本人に聞いてみましょう！";
+                const originalIndex = allProjectQuestions.indexOf(qText);
+                
+                if (originalIndex !== -1 && targetAnswers[targetName] && targetAnswers[targetName][originalIndex] !== undefined) {
+                    correctAnswer = targetAnswers[targetName][originalIndex];
+                    if (correctAnswer.trim() === "") correctAnswer = "（未回答）";
+                }
+                
+                document.getElementById('score-correct-answer').textContent = correctAnswer;
+                updateScoringGrid();
+            }
+            else if (state.phase === 'result') {
+                updateResultUI();
+            }
+        }
+
+        // 回答送信数の更新
+        function updateAnswerCountUI() {
+            const totalPlayers = Object.keys(playersData).length;
+            let submittedCount = 0;
+            
+            // 現在の問題番号に対して回答している人をカウント
+            Object.values(currentAnswersData).forEach(ansData => {
+                if (ansData.question_index === currentQuestionIndex && ansData.answer && ansData.answer.trim().length > 0) {
+                    submittedCount++;
+                }
+            });
+
+            document.getElementById('answer-total-players').textContent = totalPlayers;
+            document.getElementById('answer-submit-count').textContent = submittedCount;
+        }
+
+        // 採点画面の回答一覧グリッド更新
+        function updateScoringGrid() {
+            const container = document.getElementById('players-answers-grid');
+            container.innerHTML = '';
+
+            // プレイヤーごとにカードを作成
+            Object.keys(playersData).forEach(playerId => {
+                const pName = playersData[playerId].name;
+                const pScore = playersData[playerId].total_score || 0;
+                
+                // 該当プレイヤーの回答を探す
+                let pAnswer = "（未回答・時間切れ）";
+                let ansClass = "text-gray-400 italic";
+                
+                const ansData = currentAnswersData[playerId];
+                if (ansData && ansData.question_index === currentQuestionIndex && ansData.answer.trim() !== "") {
+                    pAnswer = ansData.answer;
+                    ansClass = "text-gray-800 font-bold";
+                }
+
+                const card = document.createElement('div');
+                card.className = "answer-card";
+                card.innerHTML = `
+                    <div class="flex justify-between items-center mb-3 border-b border-gray-100 pb-2">
+                        <div class="font-bold text-gray-700 text-lg truncate pr-2">${pName}</div>
+                        <div class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-sm font-bold">${pScore}pt</div>
+                    </div>
+                    <div class="flex-grow flex items-center justify-center p-2 text-center">
+                        <span class="text-2xl ${ansClass} break-all">${pAnswer}</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // 最終結果ランキングの更新
+        function updateResultUI() {
+            // スコア順にソート（同点の場合は名前順）
+            const sortedPlayers = Object.keys(playersData).map(id => ({
+                name: playersData[id].name,
+                score: playersData[id].total_score || 0
+            })).sort((a, b) => {
+                if (b.score !== a.score) return b.score - a.score;
+                return a.name.localeCompare(b.name);
+            });
+
+            // 上位3名をセット
+            const p1 = sortedPlayers[0] || {name: "-", score: 0};
+            const p2 = sortedPlayers[1] || {name: "-", score: 0};
+            const p3 = sortedPlayers[2] || {name: "-", score: 0};
+
+            document.getElementById('rank-1-name').textContent = p1.name;
+            document.getElementById('rank-1-score').textContent = p1.score;
+            document.getElementById('rank-2-name').textContent = p2.name;
+            document.getElementById('rank-2-score').textContent = p2.score;
+            document.getElementById('rank-3-name').textContent = p3.name;
+            document.getElementById('rank-3-score').textContent = p3.score;
+
+            // 4位以下をリストにセット
+            const listContainer = document.getElementById('ranking-list');
+            listContainer.innerHTML = '';
+            
+            if (sortedPlayers.length > 3) {
+                for (let i = 3; i < sortedPlayers.length; i++) {
+                    const p = sortedPlayers[i];
+                    const row = document.createElement('div');
+                    row.className = "flex justify-between items-center py-4 border-b border-gray-100";
+                    row.innerHTML = `
+                        <div class="flex items-center gap-4">
+                            <span class="text-gray-400 font-bold w-8 text-right">${i + 1}位</span>
+                            <span class="font-bold text-gray-800 text-2xl">${p.name}</span>
+                        </div>
+                        <span class="font-black text-gray-600 text-2xl">${p.score}<span class="text-sm ml-1 font-normal">pt</span></span>
+                    `;
+                    listContainer.appendChild(row);
+                }
+            } else {
+                listContainer.innerHTML = '<p class="text-gray-400 text-center py-4">4位以下のプレイヤーはいません</p>';
+            }
+        }
+    </script>
+</body>
+</html>
