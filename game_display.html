@@ -128,7 +128,7 @@
     <!-- Result Phase -->
     <div id="phase-result" class="phase-container bg-gradient-to-br from-yellow-50 to-yellow-100 py-12">
         <div class="w-full max-w-7xl mx-auto text-center">
-            <h2 class="text-5xl md:text-7xl font-black text-yellow-600 mb-16 drop-shadow-md">🏆 最終結果発表 🏆</h2>
+            <h2 id="result-title" class="text-5xl md:text-7xl font-black text-yellow-600 mb-16 drop-shadow-md">🏆 最終結果発表 🏆</h2>
             
             <!-- 表彰台エリア -->
             <div class="flex flex-row justify-center items-end gap-4 md:gap-8 mb-20 h-80" id="podium-container">
@@ -161,7 +161,7 @@
                 </div>
             </div>
             
-            <div class="mt-16 result-item" style="animation-delay: 5s;">
+            <div id="result-finish-msg" class="mt-16 result-item" style="animation-delay: 5s;">
                 <p class="text-2xl text-gray-500 font-bold">ご参加ありがとうございました！</p>
             </div>
         </div>
@@ -181,6 +181,9 @@
         </div>
         <div id="display-controls-scoring" class="hidden">
             <button id="btn-next-question" class="btn btn-primary px-8 py-3 text-lg font-bold w-auto">次の問題へ進む</button>
+        </div>
+        <div id="display-controls-mid_result" class="hidden">
+            <button id="btn-next-from-mid" class="btn bg-blue-500 hover:bg-blue-600 text-white px-8 py-3 text-lg font-bold w-auto">後半戦（次の問題）へ進む</button>
         </div>
         <div id="display-controls-result" class="hidden">
             <button id="btn-finish-game" class="btn bg-gray-800 text-white hover:bg-gray-900 px-8 py-3 text-lg font-bold w-auto">ゲームを終了してデータをリセット</button>
@@ -240,7 +243,7 @@
             
             if(currentPhase === 'answer') updateAnswerCountUI();
             if(currentPhase === 'scoring') updateScoringGrid();
-            if(currentPhase === 'result') updateResultUI();
+            if(currentPhase === 'result' || currentPhase === 'mid_result') updateResultUI();
         });
 
         // 3. 現在の回答の監視
@@ -256,8 +259,14 @@
 
         function switchPhaseContainer(phaseId) {
             document.querySelectorAll('.phase-container').forEach(el => el.classList.remove('active'));
-            const target = document.getElementById('phase-' + phaseId);
-            if(target) target.classList.add('active');
+            
+            const targetId = (phaseId === 'mid_result') ? 'result' : phaseId;
+            const target = document.getElementById('phase-' + targetId);
+            if(target) {
+                target.classList.remove('active');
+                void target.offsetWidth; // アニメーション再発火のため
+                target.classList.add('active');
+            }
 
             // コントロールパネルの表示切替
             document.querySelectorAll('[id^="display-controls-"]').forEach(el => el.classList.add('hidden'));
@@ -287,14 +296,18 @@
                 document.getElementById('score-q-num').textContent = currentQuestionIndex + 1;
                 document.getElementById('score-q-text').textContent = qText;
 
+                const midPoint = Math.floor(gameSettings.max_questions / 2);
+
                 // 次のフェーズのボタンテキスト設定
-                if (currentQuestionIndex + 1 < gameSettings.max_questions) {
+                if (currentQuestionIndex + 1 === midPoint) {
+                    document.getElementById('btn-next-question').textContent = "採点を完了して中間発表へ！";
+                    document.getElementById('btn-next-question').className = "btn bg-blue-500 hover:bg-blue-600 text-white px-8 py-3 text-lg font-bold w-auto";
+                } else if (currentQuestionIndex + 1 < gameSettings.max_questions) {
                     document.getElementById('btn-next-question').textContent = "採点を完了して次の問題へ";
-                    document.getElementById('btn-next-question').classList.replace('bg-yellow-500', 'btn-primary');
+                    document.getElementById('btn-next-question').className = "btn btn-primary px-8 py-3 text-lg font-bold w-auto";
                 } else {
                     document.getElementById('btn-next-question').textContent = "採点を完了して結果発表へ！";
-                    document.getElementById('btn-next-question').classList.replace('btn-primary', 'bg-yellow-500');
-                    document.getElementById('btn-next-question').classList.add('hover:bg-yellow-600', 'text-white');
+                    document.getElementById('btn-next-question').className = "btn bg-yellow-500 hover:bg-yellow-600 text-white px-8 py-3 text-lg font-bold w-auto";
                 }
                 
                 // 正解の特定
@@ -309,7 +322,23 @@
                 document.getElementById('score-correct-answer').textContent = correctAnswer;
                 updateScoringGrid();
             }
-            else if (state.phase === 'result') {
+            else if (state.phase === 'result' || state.phase === 'mid_result') {
+                const isMid = state.phase === 'mid_result';
+                document.getElementById('result-title').textContent = isMid ? '📊 中間発表 📊' : '🏆 最終結果発表 🏆';
+                const finishMsg = document.getElementById('result-finish-msg');
+                if(finishMsg) finishMsg.style.display = isMid ? 'none' : 'block';
+                
+                const phaseResultDiv = document.getElementById('phase-result');
+                if (isMid) {
+                    phaseResultDiv.classList.replace('from-yellow-50', 'from-blue-50');
+                    phaseResultDiv.classList.replace('to-yellow-100', 'to-blue-100');
+                    document.getElementById('result-title').classList.replace('text-yellow-600', 'text-blue-600');
+                } else {
+                    phaseResultDiv.classList.replace('from-blue-50', 'from-yellow-50');
+                    phaseResultDiv.classList.replace('to-blue-100', 'to-yellow-100');
+                    document.getElementById('result-title').classList.replace('text-blue-600', 'text-yellow-600');
+                }
+
                 updateResultUI();
             }
         }
@@ -581,11 +610,18 @@
         });
 
         document.getElementById('btn-next-question').addEventListener('click', () => {
-            if (currentQuestionIndex + 1 < gameSettings.max_questions) {
+            const midPoint = Math.floor(gameSettings.max_questions / 2);
+            if (currentQuestionIndex + 1 === midPoint) {
+                advancePhase('mid_result');
+            } else if (currentQuestionIndex + 1 < gameSettings.max_questions) {
                 advancePhase('answer', currentQuestionIndex + 1);
             } else {
                 advancePhase('result');
             }
+        });
+
+        document.getElementById('btn-next-from-mid').addEventListener('click', () => {
+            advancePhase('answer', currentQuestionIndex + 1);
         });
 
         // ゲーム初期化処理
