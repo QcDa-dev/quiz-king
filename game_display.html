@@ -210,6 +210,9 @@
         let playersData = {};
         let currentAnswersData = {};
 
+        // 今回の問題での獲得ポイントを管理するオブジェクト { playerId: score }
+        let currentRoundScores = {};
+
         // 1. プロジェクト状態の監視
         onSnapshot(doc(db, "projects", projectId), (docSnap) => {
             if (!docSnap.exists()) return;
