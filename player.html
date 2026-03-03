@@ -131,7 +131,7 @@
 
     <script type="module">
         import { db, initCommonUI, showLoading, hideLoading } from './common.js';
-        import { doc, getDoc, setDoc, updateDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { doc, getDoc, setDoc, updateDoc, collection, onSnapshot, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // URLからプロジェクトIDを取得
         const urlParams = new URLSearchParams(window.location.search);
@@ -220,6 +220,15 @@
             showLoading("参加登録中...");
 
             try {
+                // 名前の重複チェック
+                const q = query(collection(db, "projects", projectId, "players"), where("name", "==", nameInput));
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    alert("この名前は既に登録されています。別の名前を入力してください。");
+                    hideLoading();
+                    return;
+                }
+
                 // 新しいプレイヤードキュメントを作成
                 const newPlayerRef = doc(collection(db, "projects", projectId, "players"));
                 myPlayerId = newPlayerRef.id;
