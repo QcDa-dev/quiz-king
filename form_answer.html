@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>事前回答フォーム - みんなで〇〇王！</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        /* スムーズなスクロールと下部余白の確保（プログレスバー用） */
+        body { padding-bottom: 100px; }
+        .question-card {
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .question-card:focus-within {
+            border-color: #fca5a5;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+        }
+        .answered {
+            border-color: #86efac !important; /* bg-green-300 */
+            background-color: #f0fdf4; /* bg-green-50 */
+        }
+    </style>
+</head>
+<body>
+    <!-- 共通ヘッダー -->
+    <header id="header-container"></header>
+
+    <main class="p-4 sm:p-6 max-w-3xl mx-auto w-full hidden" id="main-container">
+        
+        <div class="text-center mb-8 fade-in">
+            <h1 class="text-3xl font-black text-red-500 mb-2">事前回答フォーム</h1>
+            <p class="text-gray-600 text-sm sm:text-base leading-relaxed">
+                あなたに関するクイズ大会「〇〇王」の問題です！<br>
+                素直な気持ちで、なるべくたくさん答えてください。
+            </p>
+        </div>
+
+        <!-- 質問リスト表示領域 -->
+        <form id="answer-form" class="space-y-6">
+            <div id="questions-container" class="space-y-6">
+                <!-- JSで動的に生成 -->
+            </div>
+        </form>
+
+    </main>
+
+    <!-- 下部固定プログレスバー 兼 送信ボタン -->
+    <div id="bottom-bar" class="fixed bottom-0 left-0 w-full bg-white shadow-[0_-4px_15px_rgba(0,0,0,0.05)] p-4 z-40 hidden fade-in">
+        <div class="max-w-3xl mx-auto flex items-center justify-between gap-4">
+            <div class="flex-1">
+                <div class="flex justify-between text-xs sm:text-sm mb-1 font-bold text-gray-700">
+                    <span>回答ノルマ達成まで</span>
+                    <span id="progress-text">0 / 10 問</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                    <div id="progress-bar" class="bg-red-500 h-2.5 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+                </div>
+            </div>
+            <button id="btn-submit" disabled class="btn btn-primary !w-auto !py-3 !px-6 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 shadow-md">
+                送信する
+            </button>
+        </div>
+    </div>
+
+    <!-- 完了画面（初期非表示） -->
+    <div id="completion-screen" class="p-4 sm:p-6 max-w-2xl mx-auto w-full hidden text-center mt-10">
+        <div class="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg class="w-12 h-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+        </div>
+        <h2 class="text-3xl font-black text-gray-800 mb-4">回答ありがとうございました！</h2>
+        <p class="text-gray-600 leading-relaxed mb-8">
+            あなたの回答は無事に保存されました。<br>
+            当日の「〇〇王」クイズ大会をお楽しみに！<br>
+            この画面は閉じていただいて構いません。
+        </p>
+    </div>
+
+    <!-- 共通フッター -->
+    <footer id="footer-container" class="mt-auto"></footer>
+
+    <script type="module">
+        import { db, initCommonUI, showLoading, hideLoading } from './common.js';
+        import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        let projectQuestions = [];
+        let minAnswersRequired = 1;
+        let projectId = "";
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            initCommonUI();
+
+            // URLからプロジェクトIDを取得
+            const urlParams = new URLSearchParams(window.location.search);
+            projectId = urlParams.get('id');
+
+            if (!projectId) {
+                window.location.href = 'notfound.html';
+                return;
+            }
+
+            try {
+                showLoading("問題を読み込んでいます...");
+                const docRef = doc(db, "projects", projectId);
+                const docSnap = await getDoc(docRef);
+                
+                if (!docSnap.exists()) {
+                    window.location.href = 'notfound.html';
+                    return;
+                }
+
+                const projectData = docSnap.data();
+                projectQuestions = projectData.questions || [];
+                minAnswersRequired = projectData.min_answers || 10;
+
+                if (projectQuestions.length === 0) {
+                    alert("まだ問題が設定されていません。");
+                    window.location.href = 'notfound.html';
+                    return;
+                }
+
+                renderQuestions();
+                updateProgress();
+
+                hideLoading();
+                document.getElementById('main-container').classList.remove('hidden');
+                document.getElementById('bottom-bar').classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Error fetching questions:", error);
+                alert("通信エラーが発生しました。");
+                hideLoading();
+            }
+        });
+
+        // 質問リストの描画
+        function renderQuestions() {
+            const container = document.getElementById('questions-container');
+            container.innerHTML = '';
+
+            projectQuestions.forEach((qText, index) => {
+                const isFirst = (index === 0);
+                
+                const card = document.createElement('div');
+                card.className = "question-card bg-white p-5 rounded-xl border-2 border-gray-100 shadow-sm relative";
+                
+                // 第一問目（名前）の特別スタイル
+                if (isFirst) {
+                    card.classList.add('border-red-200', 'bg-red-50');
+                }
+
+                // 特定ジャンル（アクション系等）の注記判定
+                let noteHtml = '';
+                if (isFirst) {
+                    noteHtml = `<p class="text-xs font-bold text-red-500 mb-3">※ここで入力した名前が「〇〇王」の〇〇の部分になります！(必須)</p>`;
+                } else if (qText.includes('※実際') || qText.includes('アクション')) {
+                    noteHtml = `<p class="text-xs text-orange-500 mb-3 bg-orange-50 p-2 rounded">※この問題は当日実際に行う可能性があるため、今の時点では回答を飛ばしても構いません。</p>`;
+                }
+
+                card.innerHTML = `
+                    <div class="flex items-start gap-3 mb-2">
+                        <div class="w-8 h-8 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold flex-shrink-0 text-sm">
+                            Q${index + 1}
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-800 pt-1">${qText}</h3>
+                    </div>
+                    ${noteHtml}
+                    <textarea id="answer-${index}" rows="${isFirst ? 1 : 2}" 
+                        class="answer-input w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 transition-shadow resize-y" 
+                        placeholder="回答を入力..." ${isFirst ? 'required' : ''}></textarea>
+                `;
+
+                container.appendChild(card);
+
+                // 入力イベントで進捗バーとカードのスタイルを更新
+                const textarea = card.querySelector('textarea');
+                textarea.addEventListener('input', () => {
+                    if (textarea.value.trim().length > 0) {
+                        card.classList.add('answered');
+                    } else {
+                        card.classList.remove('answered');
+                    }
+                    updateProgress();
+                });
+            });
+        }
+
+        // 進捗状況の更新
+        function updateProgress() {
+            const inputs = document.querySelectorAll('.answer-input');
+            let answeredCount = 0;
+            
+            // 第一問目（名前）が入力されているかチェック
+            const nameInput = document.getElementById('answer-0');
+            const hasName = nameInput && nameInput.value.trim().length > 0;
+
+            inputs.forEach(input => {
+                if (input.value.trim().length > 0) {
+                    answeredCount++;
+                }
+            });
+
+            const progressText = document.getElementById('progress-text');
+            const progressBar = document.getElementById('progress-bar');
+            const btnSubmit = document.getElementById('btn-submit');
+
+            progressText.textContent = `${answeredCount} / ${minAnswersRequired} 問`;
+            
+            // プログレスバーの割合（最大100%）
+            let percentage = (answeredCount / minAnswersRequired) * 100;
+            if (percentage > 100) percentage = 100;
+            progressBar.style.width = `${percentage}%`;
+
+            // ノルマ達成時はバーを緑色に
+            if (percentage >= 100) {
+                progressBar.classList.remove('bg-red-500');
+                progressBar.classList.add('bg-green-500');
+            } else {
+                progressBar.classList.remove('bg-green-500');
+                progressBar.classList.add('bg-red-500');
+            }
+
+            // 送信ボタンの有効化条件（名前が入力されている ＆ ノルマ達成）
+            if (hasName && answeredCount >= minAnswersRequired) {
+                btnSubmit.disabled = false;
+            } else {
+                btnSubmit.disabled = true;
+            }
+        }
+
+        // 送信処理
+        document.getElementById('btn-submit').addEventListener('click', async () => {
+            const inputs = document.querySelectorAll('.answer-input');
+            const nickname = document.getElementById('answer-0').value.trim();
+
+            if (!nickname) {
+                alert("第1問目の「名前またはニックネーム」は必ず入力してください。");
+                document.getElementById('answer-0').focus();
+                return;
+            }
+
+            // 回答データを構築 { "0": "回答内容", "1": "回答内容", ... }
+            const userAnswers = {};
+            inputs.forEach((input, index) => {
+                const val = input.value.trim();
+                userAnswers[index] = val; // 空白でも保存（あとで表示する際に未回答と判別するため）
+            });
+
+            showLoading("回答を送信しています...");
+
+            try {
+                const projectRef = doc(db, "projects", projectId);
+                
+                // 現在のデータを取得してマージする（他人の回答を消さないため）
+                const docSnap = await getDoc(projectRef);
+                const currentData = docSnap.data();
+                const allTargetAnswers = currentData.target_answers || {};
+                
+                // 自分の回答をセット（上書き）
+                allTargetAnswers[nickname] = userAnswers;
+
+                // 更新
+                await updateDoc(projectRef, {
+                    target_answers: allTargetAnswers
+                });
+
+                hideLoading();
+                
+                // 画面切り替え
+                document.getElementById('main-container').classList.add('hidden');
+                document.getElementById('bottom-bar').classList.add('hidden');
+                document.getElementById('completion-screen').classList.remove('hidden');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            } catch (error) {
+                console.error("Error submitting answers:", error);
+                alert("送信に失敗しました。電波の良いところで再度お試しください。");
+                hideLoading();
+            }
+        });
+    </script>
+</body>
+</html>
