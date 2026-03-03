@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>回答用画面 - みんなで〇〇王！</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        body { background-color: #f9fafb; }
+        /* 上部のステータスバーの余白を確保 */
+        #game-screen { padding-top: 70px; }
+    </style>
+</head>
+<body>
+    <!-- 共通ヘッダー -->
+    <header id="header-container"></header>
+
+    <main class="w-full h-full flex flex-col">
+        
+        <!-- 1. ログイン（参加登録）画面 -->
+        <div id="login-screen" class="p-4 sm:p-6 max-w-md mx-auto w-full hidden fade-in mt-10">
+            <div class="card text-center shadow-lg border-t-4 border-red-500">
+                <h2 class="text-2xl font-black text-gray-800 mb-2">ゲームに参加する</h2>
+                <p class="text-sm text-gray-600 mb-6">あなたの名前（ニックネーム）を入力して、クイズ大会に参加しましょう！</p>
+                
+                <form id="login-form" class="space-y-4">
+                    <input type="text" id="input-player-name" placeholder="名前を入力（例：たなか）" class="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200 font-bold text-center text-lg" required maxlength="15">
+                    <button type="submit" class="btn btn-primary text-xl py-4 shadow-md w-full">参加する！</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 2. ゲーム画面（ログイン後に表示） -->
+        <div id="game-screen" class="hidden flex-grow flex flex-col relative">
+            
+            <!-- 上部固定ステータスバー -->
+            <div class="fixed top-[60px] left-0 w-full bg-gray-800 text-white p-3 z-40 shadow-md flex justify-between items-center px-4 md:px-8">
+                <div class="flex items-center gap-2 truncate">
+                    <div class="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
+                        Me
+                    </div>
+                    <span id="player-name-display" class="font-bold text-lg truncate">プレイヤー名</span>
+                </div>
+                <div class="text-right flex-shrink-0">
+                    <span class="text-xs text-gray-400 block -mb-1">現在のスコア</span>
+                    <span class="font-black text-yellow-400 text-xl"><span id="player-score-display">0</span> <span class="text-sm font-normal">pt</span></span>
+                </div>
+            </div>
+
+            <div class="p-4 sm:p-6 max-w-xl mx-auto w-full flex-grow flex flex-col pb-10">
+                
+                <!-- 待機・汎用メッセージフェーズ -->
+                <div id="phase-wait" class="player-phase text-center py-10 fade-in hidden">
+                    <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-gray-200">
+                        <svg class="w-10 h-10 text-gray-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                    </div>
+                    <h3 class="text-2xl font-black text-gray-700 mb-2">プロジェクター（大画面）を<br>ご覧ください</h3>
+                    <p class="text-gray-500 text-sm">問題が出題されると、自動的に回答画面に切り替わります。</p>
+                </div>
+
+                <!-- 回答フェーズ -->
+                <div id="phase-answer" class="player-phase fade-in hidden">
+                    <div class="bg-white rounded-2xl shadow-md border-t-4 border-red-500 p-5 mb-6">
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded">第 <span class="current-q-num">1</span> 問</span>
+                            <span class="text-xs font-bold text-gray-400">回答受付中</span>
+                        </div>
+                        <h3 id="answer-q-text" class="text-lg sm:text-xl font-bold text-gray-800 leading-relaxed mb-4">問題文がここに入ります</h3>
+                    </div>
+
+                    <form id="submit-answer-form" class="space-y-4">
+                        <textarea id="input-answer" rows="3" class="w-full p-4 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200 text-lg resize-y shadow-sm" placeholder="答えを入力してください" required></textarea>
+                        <button type="submit" id="btn-submit-answer" class="btn btn-primary text-xl py-4 shadow-md w-full flex items-center justify-center gap-2">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                            回答を送信する！
+                        </button>
+                    </form>
+                </div>
+
+                <!-- 回答送信完了・待機フェーズ -->
+                <div id="phase-submitted" class="player-phase text-center py-10 fade-in hidden">
+                    <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                        <svg class="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                    <h3 class="text-2xl font-black text-gray-800 mb-2">送信完了！</h3>
+                    <p class="text-gray-500 text-sm">他のプレイヤーの回答を待っています...<br>プロジェクターをご覧ください。</p>
+                </div>
+
+                <!-- 採点フェーズ -->
+                <div id="phase-scoring" class="player-phase fade-in hidden">
+                    <div class="bg-white rounded-2xl shadow-md border-t-4 border-yellow-400 p-5 mb-6">
+                        <div class="flex items-center justify-between mb-3 border-b border-gray-100 pb-2">
+                            <span class="bg-yellow-100 text-yellow-700 text-xs font-bold px-2 py-1 rounded">第 <span class="current-q-num">1</span> 問 の正解</span>
+                        </div>
+                        <p id="scoring-q-text" class="text-sm font-bold text-gray-500 mb-4">問題文</p>
+                        <div class="text-center bg-gray-50 p-4 rounded-xl border border-gray-200">
+                            <p class="text-xs font-bold text-red-500 mb-1">👑 〇〇王の正解</p>
+                            <p id="scoring-correct-text" class="text-2xl font-black text-gray-800">正解がここに入ります</p>
+                        </div>
+                    </div>
+
+                    <h4 class="font-bold text-gray-700 mb-3 px-1">全員の回答状況（採点中...）</h4>
+                    <div id="scoring-players-list" class="space-y-3">
+                        <!-- JSで動的生成 -->
+                    </div>
+                </div>
+
+                <!-- 結果発表フェーズ -->
+                <div id="phase-result" class="player-phase fade-in hidden text-center">
+                    <h3 class="text-2xl font-black text-yellow-600 mb-6 mt-4">🏆 最終結果 🏆</h3>
+                    
+                    <div class="bg-white rounded-2xl shadow-md p-5 border-t-4 border-yellow-400 mb-6">
+                        <p class="text-gray-500 font-bold mb-1">あなたの最終スコア</p>
+                        <div class="text-5xl font-black text-gray-800"><span id="result-my-score">0</span><span class="text-xl text-gray-500 font-bold ml-1">pt</span></div>
+                        <div class="mt-2 text-sm text-red-500 font-bold" id="result-my-rank">総合 第 ? 位</div>
+                    </div>
+
+                    <h4 class="font-bold text-gray-700 mb-3 text-left px-1 border-b border-gray-200 pb-2">総合ランキング</h4>
+                    <div id="result-ranking-list" class="space-y-0 text-left bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <!-- JSで動的生成 -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- 共通フッター（非表示にしてもよいが規定により配置） -->
+    <footer id="footer-container" class="mt-auto hidden"></footer>
+
+    <script type="module">
+        import { db, initCommonUI, showLoading, hideLoading } from './common.js';
+        import { doc, getDoc, setDoc, updateDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // URLからプロジェクトIDを取得
+        const urlParams = new URLSearchParams(window.location.search);
+        const projectId = urlParams.get('id');
+
+        if (!projectId) {
+            window.location.href = 'notfound.html';
+        }
+
+        // LocalStorageのキー設定
+        const STORAGE_KEY_PLAYER_ID = `qcda_quiz_playerId_${projectId}`;
+
+        // 状態変数
+        let myPlayerId = localStorage.getItem(STORAGE_KEY_PLAYER_ID);
+        let myPlayerName = "";
+        let currentPhase = "";
+        let currentQuestionIndex = 0;
+        let playQuestions = [];
+        let allProjectQuestions = [];
+        let targetAnswers = {};
+        let targetName = "";
+        
+        let playersData = {};
+        let currentAnswersData = {};
+
+        // 送信状態管理
+        let hasSubmittedCurrentQuestion = false;
+
+        // リスナーの解除関数保持用
+        let unsubscribeProject = null;
+        let unsubscribePlayers = null;
+        let unsubscribeAnswers = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            initCommonUI();
+            
+            // ヘッダータイトルのリンク先を無効化（参加者が誤ってインデックスに戻らないため）
+            const headerTitle = document.getElementById('header-title');
+            if(headerTitle) headerTitle.href = "#";
+
+            showLoading("ゲームに接続しています...");
+
+            try {
+                // プロジェクト自体の存在確認
+                const docRef = doc(db, "projects", projectId);
+                const docSnap = await getDoc(docRef);
+                if (!docSnap.exists()) {
+                    window.location.href = 'notfound.html';
+                    return;
+                }
+
+                // 過去の登録IDがある場合、Firestoreにまだ存在するか確認
+                if (myPlayerId) {
+                    const playerSnap = await getDoc(doc(db, "projects", projectId, "players", myPlayerId));
+                    if (playerSnap.exists()) {
+                        // 復帰成功
+                        myPlayerName = playerSnap.data().name;
+                        document.getElementById('player-name-display').textContent = myPlayerName;
+                        startGameListeners();
+                        return;
+                    } else {
+                        // 管理者によってリセットされた等でIDが無効になっている
+                        localStorage.removeItem(STORAGE_KEY_PLAYER_ID);
+                        myPlayerId = null;
+                        alert("ゲームがリセットされたか、データが見つかりません。\n再度名前を入力して参加してください。");
+                    }
+                }
+
+                // 新規登録画面を表示
+                hideLoading();
+                document.getElementById('login-screen').classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Error connecting:", error);
+                alert("通信エラーが発生しました。");
+                hideLoading();
+            }
+        });
+
+        // --- 参加登録処理 ---
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nameInput = document.getElementById('input-player-name').value.trim();
+            if (!nameInput) return;
+
+            showLoading("参加登録中...");
+
+            try {
+                // 新しいプレイヤードキュメントを作成
+                const newPlayerRef = doc(collection(db, "projects", projectId, "players"));
+                myPlayerId = newPlayerRef.id;
+                myPlayerName = nameInput;
+
+                await setDoc(newPlayerRef, {
+                    name: myPlayerName,
+                    total_score: 0
+                });
+
+                // LocalStorageに保存
+                localStorage.setItem(STORAGE_KEY_PLAYER_ID, myPlayerId);
+
+                document.getElementById('player-name-display').textContent = myPlayerName;
+                document.getElementById('login-screen').classList.add('hidden');
+                
+                // リスナー開始
+                startGameListeners();
+
+            } catch (error) {
+                console.error("Error registering:", error);
+                alert("登録に失敗しました。電波の良いところで再度お試しください。");
+                hideLoading();
+            }
+        });
+
+        // --- ゲーム状態監視リスナー ---
+        function startGameListeners() {
+            document.getElementById('game-screen').classList.remove('hidden');
+
+            // 1. プロジェクト本体（フェーズ進行）の監視
+            unsubscribeProject = onSnapshot(doc(db, "projects", projectId), (docSnap) => {
+                if (!docSnap.exists()) {
+                    // プロジェクト自体が削除された場合
+                    forceReset("このプロジェクトは削除されました。");
+                    return;
+                }
+
+                const data = docSnap.data();
+                const state = data.game_state;
+                if (!state) return;
+
+                playQuestions = state.play_questions || [];
+                allProjectQuestions = data.questions || [];
+                targetAnswers = data.target_answers || {};
+                targetName = state.selected_target || "〇〇";
+
+                // フェーズや問題が変わったか
+                if (currentPhase !== state.phase || currentQuestionIndex !== state.current_question_index) {
+                    currentPhase = state.phase;
+                    
+                    // 問題が切り替わったら、送信フラグをリセットしフォームを空にする
+                    if (currentQuestionIndex !== state.current_question_index) {
+                        currentQuestionIndex = state.current_question_index;
+                        hasSubmittedCurrentQuestion = false;
+                        document.getElementById('input-answer').value = "";
+                    }
+
+                    updatePlayerUI();
+                }
+
+                hideLoading();
+            });
+
+            // 2. プレイヤー全員の情報（スコアやリセット検知）の監視
+            unsubscribePlayers = onSnapshot(collection(db, "projects", projectId, "players"), (snap) => {
+                playersData = {};
+                let meFound = false;
+
+                snap.forEach(docSnap => {
+                    playersData[docSnap.id] = docSnap.data();
+                    if (docSnap.id === myPlayerId) {
+                        meFound = true;
+                        // 自分のスコアを更新
+                        const myScore = docSnap.data().total_score || 0;
+                        document.getElementById('player-score-display').textContent = myScore;
+                        document.getElementById('result-my-score').textContent = myScore;
+                    }
+                });
+
+                // もし自分がコレクションから消えていたら（管理者がゲームリセットした）
+                if (!meFound && myPlayerId) {
+                    forceReset("ゲームが終了し、データがリセットされました。\nご参加ありがとうございました！");
+                    return;
+                }
+
+                if (currentPhase === 'scoring') renderScoringPlayers();
+                if (currentPhase === 'result') renderResultRanking();
+            });
+
+            // 3. 全員の回答状況の監視（採点フェーズでの表示用）
+            unsubscribeAnswers = onSnapshot(collection(db, "projects", projectId, "current_answers"), (snap) => {
+                currentAnswersData = {};
+                snap.forEach(docSnap => {
+                    currentAnswersData[docSnap.id] = docSnap.data();
+                });
+                
+                // 自分が既に送信済みかどうかの再確認（リロード復帰時対策）
+                if (currentPhase === 'answer' && currentAnswersData[myPlayerId]) {
+                    const myAns = currentAnswersData[myPlayerId];
+                    if (myAns.question_index === currentQuestionIndex && myAns.answer.trim() !== "") {
+                        hasSubmittedCurrentQuestion = true;
+                        updatePlayerUI(); // Submitted画面へ
+                    }
+                }
+
+                if (currentPhase === 'scoring') renderScoringPlayers();
+            });
+        }
+
+        // 強制リセット処理（管理者が終了した時など）
+        function forceReset(message) {
+            alert(message);
+            localStorage.removeItem(STORAGE_KEY_PLAYER_ID);
+            
+            // リスナー解除
+            if(unsubscribeProject) unsubscribeProject();
+            if(unsubscribePlayers) unsubscribePlayers();
+            if(unsubscribeAnswers) unsubscribeAnswers();
+
+            // 画面をリロードして最初に戻る
+            window.location.reload();
+        }
+
+        // --- 手元のUI更新ロジック ---
+        function switchPhasePanel(panelId) {
+            document.querySelectorAll('.player-phase').forEach(el => el.classList.add('hidden'));
+            document.getElementById(panelId).classList.remove('hidden');
+        }
+
+        function updatePlayerUI() {
+            // 共通テキストの更新
+            document.querySelectorAll('.current-q-num').forEach(el => el.textContent = currentQuestionIndex + 1);
+
+            if (currentPhase === 'waiting' || currentPhase === 'title' || currentPhase === 'rules') {
+                switchPhasePanel('phase-wait');
+            }
+            else if (currentPhase === 'answer') {
+                if (hasSubmittedCurrentQuestion) {
+                    switchPhasePanel('phase-submitted');
+                } else {
+                    document.getElementById('answer-q-text').textContent = playQuestions[currentQuestionIndex] || "";
+                    switchPhasePanel('phase-answer');
+                    // スマホでキーボードを開きやすくするため少し遅れてフォーカスを試みる
+                    setTimeout(() => document.getElementById('input-answer').focus(), 300);
+                }
+            }
+            else if (currentPhase === 'scoring') {
+                switchPhasePanel('phase-scoring');
+                
+                const qText = playQuestions[currentQuestionIndex] || "";
+                document.getElementById('scoring-q-text').textContent = qText;
+
+                // 正解の取得
+                let correctAnswer = "（本人に聞いてみましょう！）";
+                const origIdx = allProjectQuestions.indexOf(qText);
+                if (origIdx !== -1 && targetAnswers[targetName] && targetAnswers[targetName][origIdx] !== undefined) {
+                    correctAnswer = targetAnswers[targetName][origIdx];
+                    if (correctAnswer.trim() === "") correctAnswer = "（未回答）";
+                }
+                document.getElementById('scoring-correct-text').textContent = correctAnswer;
+                
+                renderScoringPlayers();
+            }
+            else if (currentPhase === 'result') {
+                switchPhasePanel('phase-result');
+                renderResultRanking();
+            }
+        }
+
+        // 採点フェーズの全員の回答リスト
+        function renderScoringPlayers() {
+            const container = document.getElementById('scoring-players-list');
+            if(!container) return;
+            container.innerHTML = '';
+
+            // 名前順などでソート
+            const sortedPlayerIds = Object.keys(playersData).sort((a, b) => {
+                if(a === myPlayerId) return -1; // 自分を一番上にする
+                if(b === myPlayerId) return 1;
+                return playersData[a].name.localeCompare(playersData[b].name);
+            });
+
+            sortedPlayerIds.forEach(pId => {
+                const pName = playersData[pId].name;
+                const pScore = playersData[pId].total_score || 0;
+                const isMe = (pId === myPlayerId);
+                
+                let pAnswer = "（未回答・時間切れ）";
+                let ansClass = "text-gray-400 italic";
+                const ansData = currentAnswersData[pId];
+                
+                if (ansData && ansData.question_index === currentQuestionIndex && ansData.answer.trim() !== "") {
+                    pAnswer = ansData.answer;
+                    ansClass = "text-gray-800 font-bold";
+                }
+
+                const div = document.createElement('div');
+                div.className = `p-3 rounded-lg border ${isMe ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white'}`;
+                
+                div.innerHTML = `
+                    <div class="flex justify-between items-center mb-1">
+                        <div class="text-xs font-bold ${isMe ? 'text-red-600' : 'text-gray-600'}">${pName} ${isMe ? '(あなた)' : ''}</div>
+                        <div class="text-xs font-bold text-gray-500">${pScore}pt</div>
+                    </div>
+                    <div class="text-sm ${ansClass} break-all bg-white p-2 rounded border border-gray-100">${pAnswer}</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // 結果発表のランキング表示
+        function renderResultRanking() {
+            const sortedPlayers = Object.keys(playersData).map(id => ({
+                id: id,
+                name: playersData[id].name,
+                score: playersData[id].total_score || 0
+            })).sort((a, b) => {
+                if (b.score !== a.score) return b.score - a.score;
+                return a.name.localeCompare(b.name);
+            });
+
+            const container = document.getElementById('result-ranking-list');
+            if(!container) return;
+            container.innerHTML = '';
+
+            let myRank = 1;
+
+            sortedPlayers.forEach((p, idx) => {
+                const isMe = (p.id === myPlayerId);
+                const rank = idx + 1;
+                if (isMe) myRank = rank;
+
+                let icon = `<span class="text-gray-400 font-bold w-6 text-center">${rank}</span>`;
+                if (rank === 1) icon = `<span class="text-xl">🥇</span>`;
+                if (rank === 2) icon = `<span class="text-xl">🥈</span>`;
+                if (rank === 3) icon = `<span class="text-xl">🥉</span>`;
+
+                const div = document.createElement('div');
+                div.className = `flex justify-between items-center p-3 border-b border-gray-100 ${isMe ? 'bg-red-50' : 'bg-white'}`;
+                
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        ${icon}
+                        <span class="font-bold ${isMe ? 'text-red-600' : 'text-gray-800'}">${p.name}</span>
+                    </div>
+                    <span class="font-black ${isMe ? 'text-red-500' : 'text-gray-600'}">${p.score}<span class="text-xs font-normal ml-1">pt</span></span>
+                `;
+                container.appendChild(div);
+            });
+
+            document.getElementById('result-my-rank').textContent = `総合 第 ${myRank} 位`;
+        }
+
+        // --- 回答送信処理 ---
+        document.getElementById('submit-answer-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btn = document.getElementById('btn-submit-answer');
+            const answerText = document.getElementById('input-answer').value.trim();
+            
+            if (!answerText) return;
+
+            btn.disabled = true;
+            btn.innerHTML = `<svg class="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> 送信中...`;
+
+            try {
+                const ansRef = doc(db, "projects", projectId, "current_answers", myPlayerId);
+                await setDoc(ansRef, {
+                    answer: answerText,
+                    question_index: currentQuestionIndex
+                });
+
+                hasSubmittedCurrentQuestion = true;
+                updatePlayerUI(); // Submitted画面へ遷移
+
+            } catch (error) {
+                console.error("Error submitting answer:", error);
+                alert("送信に失敗しました。電波環境を確認して再度送信してください。");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg> 回答を送信する！`;
+            }
+        });
+    </script>
+</body>
+</html>
