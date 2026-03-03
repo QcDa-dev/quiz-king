@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>リリースノート - みんなで〇〇王！</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="common.css">
+    <!-- marked.js for Markdown to HTML conversion -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        /* Release Note専用のMarkdownパース後スタイル */
+        .release-content h1, .release-content h2, .release-content h3 {
+            @apply text-xl sm:text-2xl font-black mt-8 mb-4 border-b-2 border-red-100 pb-2 text-gray-800 flex items-center gap-2;
+        }
+        .release-content ul { @apply list-disc list-outside ml-6 space-y-2 mb-6 text-gray-600; }
+        .release-content p { @apply mb-4 leading-relaxed text-gray-700; }
+        .release-content a { @apply text-red-500 hover:text-red-700 underline font-bold transition-colors; }
+        .release-content code { @apply bg-gray-100 text-gray-800 rounded px-1.5 py-0.5 text-sm font-mono border border-gray-200; }
+        .release-content strong { @apply text-red-600 font-bold; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- 共通ヘッダー -->
+    <header id="header-container"></header>
+
+    <main class="p-4 sm:p-6 max-w-3xl mx-auto w-full pb-20">
+        
+        <div class="mb-10 fade-in text-center">
+            <h1 class="text-3xl sm:text-5xl font-black text-red-600 tracking-wider mb-2">Release Notes</h1>
+            <p class="text-gray-500 font-bold">「みんなで〇〇王！」のアップデート履歴</p>
+        </div>
+
+        <section class="fade-in" style="animation-delay: 0.1s;">
+            <!-- ローディングインジケーター -->
+            <div id="loadingIndicator" class="text-center py-12">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-red-500 mb-4"></div>
+                <p class="text-gray-500 font-bold">最新のリリース情報を取得しています...</p>
+            </div>
+
+            <!-- リリースノート表示コンテナ -->
+            <div id="release-notes-container" class="space-y-6">
+                <!-- JSでAPIから取得したデータがここに生成されます -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 共通フッター -->
+    <footer id="footer-container"></footer>
+
+    <script type="module">
+        import { initCommonUI } from './common.js';
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            // 共通UIの初期化
+            initCommonUI();
+
+            // GitHub API設定
+            const GITHUB_USER = 'qcda-dev';
+            const GITHUB_REPO = 'qcda-quiz-king';
+
+            const container = document.getElementById('release-notes-container');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const apiUrl = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/releases`;
+
+            // リリース情報の取得
+            fetch(apiUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Network response was not ok: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(releases => {
+                    loadingIndicator.classList.add('hidden');
+                    
+                    if (releases.length === 0) {
+                        container.innerHTML = `
+                            <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 text-center">
+                                <p class="text-gray-500 font-bold">リリース情報はまだありません。</p>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    // サイドメニューのバージョン表記を最新リリースに合わせる（動的更新）
+                    const versionDisplay = document.querySelector('.menu-ver');
+                    if (versionDisplay && releases[0].tag_name) {
+                        versionDisplay.textContent = `ver ${releases[0].tag_name.replace('v', '')}`;
+                    }
+
+                    // 各リリースを描画
+                    releases.forEach(release => {
+                        const releaseDate = new Date(release.published_at).toLocaleDateString('ja-JP', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        });
+                        
+                        const releaseElement = document.createElement('div');
+                        releaseElement.className = 'bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-red-100 hover:shadow-md transition-shadow relative overflow-hidden';
+                        
+                        // 左側の装飾ライン
+                        const accentLine = document.createElement('div');
+                        accentLine.className = 'absolute left-0 top-0 w-2 h-full bg-red-500';
+                        releaseElement.appendChild(accentLine);
+
+                        // marked.jsを使用してMarkdownをHTMLに変換
+                        const releaseBodyHtml = marked.parse(release.body || 'No description provided.');
+
+                        const contentDiv = document.createElement('div');
+                        contentDiv.innerHTML = `
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-b border-gray-100 pb-4">
+                                <h2 class="text-2xl sm:text-3xl font-black text-gray-800">${release.name || release.tag_name}</h2>
+                                <span class="text-sm font-bold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full mt-3 sm:mt-0 flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    ${releaseDate}
+                                </span>
+                            </div>
+                            <div class="release-content text-sm sm:text-base">${releaseBodyHtml}</div>
+                        `;
+                        
+                        releaseElement.appendChild(contentDiv);
+                        container.appendChild(releaseElement);
+                    });
+                })
+                .catch(error => {
+                    loadingIndicator.classList.add('hidden');
+                    console.error('Error fetching release notes:', error);
+                    container.innerHTML = `
+                        <div class="bg-red-50 p-6 rounded-2xl border border-red-200 text-center">
+                            <svg class="w-12 h-12 text-red-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            <p class="text-red-600 font-bold mb-1">リリース情報の取得に失敗しました。</p>
+                            <p class="text-sm text-red-500">リポジトリが非公開になっていないか確認するか、時間をおいて再度お試しください。</p>
+                        </div>
+                    `;
+                });
+        });
+    </script>
+</body>
+</html>
