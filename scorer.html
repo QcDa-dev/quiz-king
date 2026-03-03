@@ -150,9 +150,6 @@
         let playersData = {};
         let currentAnswersData = {};
 
-        // 今回の問題での獲得ポイントを管理するオブジェクト { playerId: score }
-        let currentRoundScores = {};
-
         document.addEventListener('DOMContentLoaded', () => {
             initCommonUI();
             showLoading("ゲームデータを読み込み中...");
@@ -340,7 +337,7 @@
                     ansClass = "text-gray-800 font-bold";
                 }
 
-                const currentVal = currentRoundScores[playerId] || 0; // 今回の問題の得点
+                const currentVal = playersData[playerId].current_score || 0; // Firestoreから今回の得点を取得
 
                 let card = document.getElementById(`scorer-card-${playerId}`);
                 if (!card) {
@@ -411,30 +408,37 @@
             });
         }
 
-        // 得点調整ロジック（ローカルで今回の得点を持ち、Firestoreには累計の差分を積算する）
+        // 得点調整ロジック（Firestore上の累計と「今回の得点」を同期して積算する）
         async function adjustScore(playerId, amount) {
-            const currentVal = currentRoundScores[playerId] || 0;
+            const currentVal = playersData[playerId].current_score || 0;
             const newVal = currentVal + amount;
             const diff = amount; // 差分
             
-            currentRoundScores[playerId] = newVal; // ローカル状態を更新
+            // ローカル状態を即時反映（ラグ対策）
+            playersData[playerId].current_score = newVal;
+            playersData[playerId].total_score = (playersData[playerId].total_score || 0) + diff;
             
             const input = document.querySelector(`.score-input[data-id="${playerId}"]`);
             if (input) input.value = newVal;
 
             try {
                 const ref = doc(db, "projects", projectId, "players", playerId);
-                await updateDoc(ref, { total_score: increment(diff) });
+                await updateDoc(ref, { 
+                    total_score: increment(diff),
+                    current_score: increment(diff)
+                });
             } catch (e) {
                 console.error(e);
             }
         }
 
         async function updatePlayerScoreDirectly(playerId, newValue) {
-            const currentVal = currentRoundScores[playerId] || 0;
+            const currentVal = playersData[playerId].current_score || 0;
             const diff = newValue - currentVal; // 直接入力時の差分を計算
             
-            currentRoundScores[playerId] = newValue;
+            // ローカル状態を即時反映（ラグ対策）
+            playersData[playerId].current_score = newValue;
+            playersData[playerId].total_score = (playersData[playerId].total_score || 0) + diff;
             
             const input = document.querySelector(`.score-input[data-id="${playerId}"]`);
             if (input) input.value = newValue;
@@ -442,7 +446,10 @@
             if (diff !== 0) {
                 try {
                     const ref = doc(db, "projects", projectId, "players", playerId);
-                    await updateDoc(ref, { total_score: increment(diff) });
+                    await updateDoc(ref, { 
+                        total_score: increment(diff),
+                        current_score: increment(diff)
+                    });
                 } catch (e) {
                     console.error(e);
                 }
@@ -497,7 +504,7 @@
         
         document.getElementById('btn-next-answer').addEventListener('click', () => advancePhase('answer', 0));
 
-        document.getElementById('btn-close-answer').addEventListener('click', () => {
+        document.getElementById('btn-close-answer').addEventListener('click', async () => {
             const totalPlayers = Object.keys(playersData).length;
             let submittedCount = parseInt(document.getElementById('answer-submit-count').textContent, 10) || 0;
 
@@ -507,11 +514,21 @@
                 }
             }
             
-            // 採点フェーズに入る前に「今回の得点」をリセットする
-            currentRoundScores = {};
-            Object.keys(playersData).forEach(id => { currentRoundScores[id] = 0; });
+            showLoading("採点フェーズへ移行中...");
+            try {
+                // 採点フェーズに入る前に「今回の得点」をFirestore上でリセットする
+                const promises = Object.keys(playersData).map(playerId => {
+                    const ref = doc(db, "projects", projectId, "players", playerId);
+                    return updateDoc(ref, { current_score: 0 });
+                });
+                await Promise.all(promises);
 
-            advancePhase('scoring');
+                await advancePhase('scoring');
+            } catch (e) {
+                console.error(e);
+                hideLoading();
+                alert("エラーが発生しました。");
+            }
         });
 
         document.getElementById('btn-next-question').addEventListener('click', () => {
