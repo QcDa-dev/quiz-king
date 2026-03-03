@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>事前回答フォーム発行 - みんなで〇〇王！</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="common.css">
+</head>
+<body>
+    <!-- 共通ヘッダー -->
+    <header id="header-container"></header>
+
+    <main class="p-4 sm:p-6 max-w-3xl mx-auto w-full hidden" id="main-container">
+        
+        <div class="mb-4">
+            <a id="back-to-admin" href="#" class="text-sm text-gray-500 hover:text-red-500 flex items-center transition-colors">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                管理画面へ戻る
+            </a>
+        </div>
+
+        <div class="card fade-in">
+            <h2 class="text-2xl font-black text-gray-800 mb-2 border-b border-gray-200 pb-3">事前回答用フォームの設定</h2>
+            <p class="text-sm text-gray-600 mb-6 leading-relaxed">
+                主役（〇〇王）に事前に答えてもらうクイズを作成します。<br>
+                設定に合わせて、データベースからランダムに問題が抽出されます。
+            </p>
+
+            <form id="setup-form" class="space-y-6">
+                <!-- 設問数設定 -->
+                <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <label class="font-bold text-gray-800 block">トータルの設問数</label>
+                            <span class="text-xs text-gray-500">※名前を聞く問題1問を含みます。(10〜100問)</span>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="number" id="input-total-questions" value="20" min="10" max="100" class="w-24 p-2 text-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none font-bold text-lg">
+                            <span class="ml-2 font-bold text-gray-700">問</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 最低回答数設定 -->
+                <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <label class="font-bold text-gray-800 block">最低回答数</label>
+                            <span class="text-xs text-gray-500">主役が最低限答えなければならない問題数です。</span>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="number" id="input-min-answers" value="10" min="1" max="100" class="w-24 p-2 text-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none font-bold text-lg">
+                            <span class="ml-2 font-bold text-gray-700">問</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ジャンル選択 -->
+                <div>
+                    <label class="font-bold text-gray-800 block mb-2">出題ジャンル (複数選択可)</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="genre-container">
+                        <!-- JSで生成 -->
+                    </div>
+                </div>
+
+                <!-- オリジナル設問 -->
+                <div class="border-t border-gray-200 pt-6">
+                    <div class="flex justify-between items-end mb-2">
+                        <label class="font-bold text-gray-800 block">オリジナル設問の追加</label>
+                        <button type="button" id="btn-add-original" class="text-sm bg-red-100 text-red-600 hover:bg-red-200 px-3 py-1 rounded font-bold transition-colors">
+                            + 設問を追加
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 mb-4">内輪ネタなど、必ず出題したい問題があれば入力してください。（上記「トータルの設問数」の中に含まれます）</p>
+                    
+                    <div id="original-questions-container" class="space-y-3">
+                        <!-- 動的に追加 -->
+                    </div>
+                </div>
+
+                <!-- 送信ボタン -->
+                <div class="pt-6">
+                    <button type="submit" id="btn-generate-form" class="btn btn-primary text-lg py-4">フォームのURLを発行する</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <!-- 共通フッター -->
+    <footer id="footer-container"></footer>
+
+    <!-- URL発行完了モーダル -->
+    <div id="success-modal" class="modal-overlay hidden">
+        <div class="modal-content fade-in text-center !max-w-lg">
+            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2">フォームの発行が完了しました！</h3>
+            <p class="text-sm text-gray-600 mb-6">
+                以下のURLをコピーして、〇〇王（主役）になる人に送り、<br>事前の回答をお願いしてください。
+            </p>
+            
+            <div class="bg-gray-100 p-4 rounded-lg mb-6 text-left break-all border border-gray-200">
+                <span id="display-form-url" class="text-sm text-blue-600 font-mono font-bold"></span>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button id="btn-copy-url" class="btn btn-secondary flex-1 flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                    URLをコピー
+                </button>
+                <button id="btn-go-admin" class="btn btn-primary flex-1">管理画面へ戻る</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, initCommonUI, showLoading, hideLoading, copyToClipboard } from './common.js';
+        import { doc, getDoc, updateDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const GENRES = [
+            { id: 1, name: "基本のプロフィール＆自己評価" },
+            { id: 2, name: "究極の2択＆こだわりの偏り" },
+            { id: 3, name: "食のこだわり・グルメ" },
+            { id: 4, name: "過去のエピソード・武勇伝・黒歴史" },
+            { id: 5, name: "恋愛・友情・人間関係" },
+            { id: 6, name: "もしも〇〇だったら？" },
+            { id: 7, name: "お金・仕事・人生観" },
+            { id: 8, name: "喜怒哀楽・トリガーポイント" },
+            { id: 9, name: "その場検証！アクション＆リアクション" },
+            { id: 10, name: "マニアック・親友レベルの激ムズ問題" }
+        ];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            initCommonUI();
+
+            // URLパラメータからプロジェクトIDを取得
+            const urlParams = new URLSearchParams(window.location.search);
+            const projectId = urlParams.get('id');
+
+            if (!projectId) {
+                window.location.href = 'notfound.html';
+                return;
+            }
+
+            document.getElementById('back-to-admin').href = `admin.html?id=${projectId}`;
+
+            // プロジェクトの存在確認
+            try {
+                showLoading("準備中...");
+                const docRef = doc(db, "projects", projectId);
+                const docSnap = await getDoc(docRef);
+                if (!docSnap.exists()) {
+                    window.location.href = 'notfound.html';
+                    return;
+                }
+                hideLoading();
+                document.getElementById('main-container').classList.remove('hidden');
+            } catch (error) {
+                console.error("Error:", error);
+                alert("通信エラーが発生しました。");
+                hideLoading();
+                return;
+            }
+
+            // ジャンルチェックボックスの生成
+            const genreContainer = document.getElementById('genre-container');
+            GENRES.forEach(genre => {
+                const label = document.createElement('label');
+                label.className = "flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-red-50 transition-colors bg-white";
+                label.innerHTML = `
+                    <input type="checkbox" name="genres" value="${genre.id}" checked class="w-5 h-5 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500 focus:ring-2">
+                    <span class="ml-3 text-sm font-medium text-gray-700">${genre.id}. ${genre.name}</span>
+                `;
+                genreContainer.appendChild(label);
+            });
+
+            // オリジナル設問の追加機能
+            const btnAddOriginal = document.getElementById('btn-add-original');
+            const originalContainer = document.getElementById('original-questions-container');
+
+            btnAddOriginal.addEventListener('click', () => {
+                const div = document.createElement('div');
+                div.className = "flex items-center gap-2 fade-in";
+                div.innerHTML = `
+                    <input type="text" placeholder="オリジナルの質問を入力..." class="original-q-input flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500">
+                    <button type="button" class="btn-remove-original p-3 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 font-bold">×</button>
+                `;
+                originalContainer.appendChild(div);
+
+                // 削除ボタンのイベント
+                div.querySelector('.btn-remove-original').addEventListener('click', () => {
+                    div.remove();
+                });
+            });
+
+            // フォーム送信処理（生成ロジック）
+            document.getElementById('setup-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const totalQuestions = parseInt(document.getElementById('input-total-questions').value, 10);
+                const minAnswers = parseInt(document.getElementById('input-min-answers').value, 10);
+                
+                // ジャンル取得
+                const checkedGenres = Array.from(document.querySelectorAll('input[name="genres"]:checked')).map(cb => parseInt(cb.value, 10));
+                
+                // オリジナル設問取得
+                const originalInputs = Array.from(document.querySelectorAll('.original-q-input'))
+                                            .map(input => input.value.trim())
+                                            .filter(val => val !== "");
+
+                // バリデーション
+                if (checkedGenres.length === 0) {
+                    alert("ジャンルを1つ以上選択してください。");
+                    return;
+                }
+                if (minAnswers > totalQuestions) {
+                    alert("最低回答数はトータルの設問数以下に設定してください。");
+                    return;
+                }
+                
+                const neededFromDB = totalQuestions - originalInputs.length - 1; // -1 は名前入力用
+                
+                if (neededFromDB < 0) {
+                    alert(`オリジナル設問が多すぎます。\nトータルの設問数(${totalQuestions}問)の範囲内に収めてください。`);
+                    return;
+                }
+
+                showLoading("問題を抽出・生成中...");
+
+                try {
+                    // マスターデータの取得
+                    const masterRef = collection(db, "master_questions");
+                    // ※インデックスを張らずに済ませるため全件取得してJSでフィルタ
+                    const querySnapshot = await getDocs(masterRef);
+                    const masterQuestions = [];
+                    querySnapshot.forEach(doc => {
+                        masterQuestions.push(doc.data());
+                    });
+
+                    if (masterQuestions.length === 0) {
+                        alert("データベースにマスター問題が登録されていません。");
+                        hideLoading();
+                        return;
+                    }
+
+                    // 均等抽出アルゴリズム
+                    let finalQuestions = [];
+                    let pools = {}; // ジャンルごとの問題プール
+                    
+                    checkedGenres.forEach(gId => {
+                        // 対象ジャンルの問題をシャッフルしてプールに入れる
+                        pools[gId] = masterQuestions
+                            .filter(q => parseInt(q.genre, 10) === gId)
+                            .sort(() => 0.5 - Math.random());
+                    });
+
+                    let remainingNeeded = neededFromDB;
+                    let availableGenres = [...checkedGenres];
+
+                    // ラウンドロビンで1問ずつ引いていく
+                    while(remainingNeeded > 0 && availableGenres.length > 0) {
+                        // 偏りをなくすためにジャンルの順番もシャッフル
+                        availableGenres.sort(() => 0.5 - Math.random());
+                        let nextAvailableGenres = [];
+
+                        for (let gId of availableGenres) {
+                            if (remainingNeeded === 0) break;
+                            
+                            if (pools[gId].length > 0) {
+                                finalQuestions.push(pools[gId].pop().question);
+                                remainingNeeded--;
+                                
+                                // まだ引ける問題が残っていれば次のラウンドの対象にする
+                                if (pools[gId].length > 0) {
+                                    nextAvailableGenres.push(gId);
+                                }
+                            }
+                        }
+                        availableGenres = nextAvailableGenres;
+                    }
+
+                    // オリジナル設問を結合
+                    finalQuestions = finalQuestions.concat(originalInputs);
+
+                    // シャッフル
+                    finalQuestions.sort(() => 0.5 - Math.random());
+
+                    // 先頭に固定設問を追加
+                    const FINAL_QUESTION_LIST = [
+                        "名前またはニックネーム（〇〇王の〇〇に入る名前）",
+                        ...finalQuestions
+                    ];
+
+                    // Firestoreのプロジェクトデータを更新
+                    const projectRef = doc(db, "projects", projectId);
+                    await updateDoc(projectRef, {
+                        questions: FINAL_QUESTION_LIST,
+                        min_answers: minAnswers
+                    });
+
+                    // 成功モーダルの表示
+                    const baseUrl = window.location.href.split('form_setup.html')[0];
+                    const formUrl = `${baseUrl}form_answer.html?id=${projectId}`;
+                    
+                    document.getElementById('display-form-url').textContent = formUrl;
+                    
+                    document.getElementById('btn-copy-url').onclick = () => {
+                        copyToClipboard(formUrl, "回答用フォームのURLをコピーしました！\n〇〇王本人に送ってください。");
+                    };
+                    
+                    document.getElementById('btn-go-admin').onclick = () => {
+                        window.location.href = `admin.html?id=${projectId}`;
+                    };
+
+                    hideLoading();
+                    document.getElementById('success-modal').classList.remove('hidden');
+
+                } catch (error) {
+                    console.error("Error generating form:", error);
+                    alert("フォームの生成に失敗しました。");
+                    hideLoading();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
