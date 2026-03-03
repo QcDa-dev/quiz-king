@@ -250,11 +250,15 @@
                 // ぶっつけ本番の場合は第1問（名前）を除外したすべてが対象
                 availableQuestionsCount = Math.max(0, questions.length - 1);
             } else {
-                // 事前回答がある場合は、未回答の問題を除外
+                // 事前回答がある場合は、未回答の問題を除外（ただし、ジャンル9は未回答でも含める）
                 const answers = projectData.target_answers[targetName];
                 let count = 0;
                 for (let i = 1; i < questions.length; i++) {
-                    if (answers[i] && answers[i].trim() !== "") {
+                    const isAnswered = answers[i] && answers[i].trim() !== "";
+                    // Firestoreの型が文字列か数値かに対応するため緩い等価演算子または両方チェック
+                    const isGenre9 = questions[i] && (questions[i].genre == 9 || questions[i].genre == "9");
+                    
+                    if (isAnswered || isGenre9) {
                         count++;
                     }
                 }
@@ -356,10 +360,13 @@
                     // ぶっつけ本番：第1問（名前）を除外し、残りのすべての問題から抽出
                     pool = allQuestions.slice(1);
                 } else {
-                    // 通常：未回答問題を除外して抽出
+                    // 通常：未回答問題を除外して抽出（ただし、ジャンル9は未回答でも含める）
                     const answers = projectData.target_answers[targetName];
                     for (let i = 1; i < allQuestions.length; i++) {
-                        if (answers[i] && answers[i].trim() !== "") {
+                        const isAnswered = answers[i] && answers[i].trim() !== "";
+                        const isGenre9 = allQuestions[i] && (allQuestions[i].genre == 9 || allQuestions[i].genre == "9");
+                        
+                        if (isAnswered || isGenre9) {
                             pool.push(allQuestions[i]);
                         }
                     }
