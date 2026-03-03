@@ -149,9 +149,6 @@
         let playersData = {};
         let currentAnswersData = {};
 
-        // 今回の問題での獲得ポイントを管理するオブジェクト { playerId: score }
-        let currentRoundScores = {};
-
         document.addEventListener('DOMContentLoaded', () => {
             initCommonUI();
             showLoading("ゲームデータを読み込み中...");
@@ -322,7 +319,7 @@
             // 各プレイヤーの採点カードを生成・更新（差分更新）
             Object.keys(playersData).forEach(playerId => {
                 const pName = playersData[playerId].name;
-                const pTotal = playersData[playerId].total_score || 0;
+                const pScore = playersData[playerId].total_score || 0;
                 
                 let pAnswer = "（未回答・時間切れ）";
                 let ansClass = "text-gray-400 italic";
@@ -333,8 +330,6 @@
                     ansClass = "text-gray-800 font-bold";
                 }
 
-                const currentVal = currentRoundScores[playerId] || 0;
-
                 let card = document.getElementById(`scorer-card-${playerId}`);
                 if (!card) {
                     card = document.createElement('div');
@@ -343,21 +338,24 @@
                     card.className = "answer-card flex flex-col h-full bg-white rounded-xl p-4 shadow-sm border-t-4 border-red-500";
                     card.innerHTML = `
                         <div class="flex justify-between items-center mb-3 border-b border-gray-100 pb-2">
-                            <div class="font-bold text-gray-700 text-lg truncate pr-2 player-name-text">${pName}</div>
-                            <div class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-sm font-bold player-total-score">${pScore}pt</div>
+                            <div class="font-bold text-gray-700 text-lg truncate w-full player-name-text">${pName}</div>
                         </div>
                         <div class="flex-grow flex items-center justify-center p-2 text-center mb-4">
                             <span class="text-2xl ${ansClass} break-all player-answer-text">${pAnswer}</span>
                         </div>
                         
-                        <div class="flex flex-wrap items-center justify-between gap-2 bg-red-50 p-2 rounded border border-red-100 w-full mt-auto">
-                            <button class="btn-correct bg-white border border-gray-300 text-gray-800 font-bold py-1 px-3 rounded shadow-sm hover:bg-gray-100 text-sm whitespace-nowrap">
+                        <div class="flex flex-col gap-2 bg-red-50 p-3 rounded-lg border border-red-100 w-full mt-auto">
+                            <button class="btn-correct w-full bg-white border border-gray-300 text-gray-800 font-bold py-3 px-3 rounded shadow-sm hover:bg-gray-100 text-sm sm:text-base whitespace-nowrap">
                                 +${gameSettings.point_base} (正解)
                             </button>
-                            <div class="flex items-center gap-1">
-                                <button class="btn-minus bg-white border border-gray-300 text-gray-700 font-bold w-8 h-8 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-lg">-</button>
-                                <input type="text" class="score-input w-12 h-8 border border-gray-300 rounded text-center font-bold focus:outline-none focus:border-red-500" data-id="${playerId}" value="${currentVal}">
-                                <button class="btn-plus bg-white border border-gray-300 text-gray-700 font-bold w-8 h-8 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-lg">+</button>
+                            
+                            <div class="flex items-center justify-between gap-1 w-full mt-1">
+                                <span class="text-xs font-bold text-gray-600">累計</span>
+                                <div class="flex items-center gap-1">
+                                    <button class="btn-minus bg-white border border-gray-300 text-gray-700 font-bold w-10 h-10 sm:w-12 sm:h-12 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-xl sm:text-2xl">-</button>
+                                    <input type="text" class="score-input w-16 h-10 sm:w-20 sm:h-12 border border-gray-300 rounded text-center font-bold text-lg sm:text-xl focus:outline-none focus:border-red-500" data-id="${playerId}" value="${pScore}">
+                                    <button class="btn-plus bg-white border border-gray-300 text-gray-700 font-bold w-10 h-10 sm:w-12 sm:h-12 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-xl sm:text-2xl">+</button>
+                                </div>
                             </div>
                         </div>
                     `;
@@ -377,14 +375,13 @@
                         let num = parseInt(val, 10);
                         if (isNaN(num)) num = 0;
                         e.target.value = num;
-                        updatePlayerScore(playerId, num);
+                        updatePlayerScoreDirectly(playerId, num);
                     });
 
                     container.appendChild(card);
                 } else {
                     // 既存カードの更新
                     card.querySelector('.player-name-text').textContent = pName;
-                    card.querySelector('.player-total-score').textContent = `${pScore}pt`;
                     const answerDiv = card.querySelector('.player-answer-text');
                     answerDiv.className = `text-2xl ${ansClass} break-all player-answer-text`;
                     answerDiv.textContent = pAnswer;
@@ -394,32 +391,38 @@
 
                     const input = card.querySelector('.score-input');
                     if (document.activeElement !== input) {
-                        input.value = currentVal;
+                        input.value = pScore; // 常に最新の累積点数を表示
                     }
                 }
             });
         }
 
-        // 得点調整ロジック（ローカルステートとFirestoreの同期）
-        function adjustScore(playerId, amount) {
-            const currentVal = currentRoundScores[playerId] || 0;
+        // 得点調整ロジック（ローカルステートとFirestoreの同期：累積値として処理）
+        async function adjustScore(playerId, amount) {
+            const currentVal = playersData[playerId].total_score || 0;
             const newVal = currentVal + amount;
-            updatePlayerScore(playerId, newVal);
+            
+            // 連続タップ時のラグ対策でローカルデータを即時更新
+            playersData[playerId].total_score = newVal;
+            
+            const input = document.querySelector(`.score-input[data-id="${playerId}"]`);
+            if (input) input.value = newVal;
+
+            try {
+                const ref = doc(db, "projects", projectId, "players", playerId);
+                await updateDoc(ref, { total_score: newVal });
+            } catch (e) {
+                console.error(e);
+            }
         }
 
-        function updatePlayerScore(playerId, newValue) {
-            const oldValue = currentRoundScores[playerId] || 0;
-            const diff = newValue - oldValue;
-            currentRoundScores[playerId] = newValue;
-            
-            // UI反映
-            const input = document.querySelector(`.score-input[data-id="${playerId}"]`);
-            if (input) input.value = newValue;
-
-            // Firestore更新 (差分を加算)
-            if (diff !== 0) {
+        async function updatePlayerScoreDirectly(playerId, newValue) {
+            playersData[playerId].total_score = newValue;
+            try {
                 const ref = doc(db, "projects", projectId, "players", playerId);
-                updateDoc(ref, { total_score: increment(diff) }).catch(e => console.error(e));
+                await updateDoc(ref, { total_score: newValue });
+            } catch (e) {
+                console.error(e);
             }
         }
 
@@ -480,10 +483,6 @@
                     return;
                 }
             }
-            
-            // 採点フェーズに入る前に今回の得点ステートをリセット
-            currentRoundScores = {};
-            Object.keys(playersData).forEach(id => { currentRoundScores[id] = 0; });
             
             advancePhase('scoring');
         });
