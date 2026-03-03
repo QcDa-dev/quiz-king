@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>使い方ガイド - みんなで〇〇王！</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        .step-number {
+            width: 40px; height: 40px; border-radius: 50%; display: flex;
+            align-items: center; justify-content: center; font-size: 1.2rem;
+            font-weight: 900; color: white; flex-shrink: 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .guide-section {
+            scroll-margin-top: 80px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- 共通ヘッダー -->
+    <header id="header-container"></header>
+
+    <main class="p-4 sm:p-6 max-w-4xl mx-auto w-full pb-20">
+        
+        <div class="text-center mb-10 fade-in">
+            <h1 class="text-3xl sm:text-5xl font-black text-red-600 mb-4 tracking-wider">使い方ガイド</h1>
+            <p class="text-gray-600 font-bold">「みんなで〇〇王！」を最高に盛り上げるための手順を解説します。</p>
+        </div>
+
+        <!-- 目次ナビゲーション -->
+        <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 mb-10 fade-in" style="animation-delay: 0.1s;">
+            <h2 class="font-bold text-gray-800 mb-4 border-b border-gray-100 pb-2">目次</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <a href="#prep-host" class="flex items-center gap-3 p-3 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors font-bold">
+                    <span class="text-xl">🛠</span> 【事前準備】主催者がやること
+                </a>
+                <a href="#prep-target" class="flex items-center gap-3 p-3 bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100 transition-colors font-bold">
+                    <span class="text-xl">👑</span> 【事前準備】主役（〇〇王）がやること
+                </a>
+                <a href="#event-day" class="flex items-center gap-3 p-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors font-bold sm:col-span-2">
+                    <span class="text-xl">🎉</span> 【イベント当日】ゲームの進め方
+                </a>
+            </div>
+        </div>
+
+        <!-- Section 1: 主催者の準備 -->
+        <section id="prep-host" class="guide-section mb-12 fade-in" style="animation-delay: 0.2s;">
+            <h2 class="text-2xl font-black text-gray-800 mb-6 flex items-center gap-2 border-l-8 border-red-500 pl-4">
+                <span class="text-3xl">🛠</span> 【事前準備】主催者がやること
+            </h2>
+            
+            <div class="space-y-6 pl-2 sm:pl-6 border-l-2 border-dashed border-red-200 ml-4 sm:ml-6 pb-4">
+                
+                <div class="relative bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                    <div class="absolute -left-[45px] sm:-left-[53px] top-6 step-number bg-red-500">1</div>
+                    <h3 class="text-xl font-bold text-red-600 mb-2">プロジェクトを作成する</h3>
+                    <p class="text-gray-600 mb-4 leading-relaxed">トップページの<strong class="text-gray-800">「新しく〇〇王を作る！」</strong>ボタンから、イベント名（例：たっくん王決定戦！）を入力してプロジェクトを作成します。作成後に表示される<strong class="text-red-500">「管理画面のURL」</strong>は、当日まで大切に保管してください。</p>
+                </div>
+
+                <div class="relative bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                    <div class="absolute -left-[45px] sm:-left-[53px] top-6 step-number bg-red-500">2</div>
+                    <h3 class="text-xl font-bold text-red-600 mb-2">クイズ問題を自動生成する</h3>
+                    <p class="text-gray-600 mb-4 leading-relaxed">管理画面の<strong class="text-gray-800">「1. 事前回答用フォームを発行する」</strong>に進みます。<br>主役に答えてもらう問題数（10〜100問）とジャンルを選ぶと、データベースから自動で問題が抽出されます。必ず出題したい「オリジナル問題（内輪ネタなど）」を追加することも可能です。</p>
+                </div>
+
+                <div class="relative bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                    <div class="absolute -left-[45px] sm:-left-[53px] top-6 step-number bg-red-500">3</div>
+                    <h3 class="text-xl font-bold text-red-600 mb-2">主役にURLを送る</h3>
+                    <p class="text-gray-600 leading-relaxed">発行された<strong class="text-blue-500">「回答用フォームのURL」</strong>をコピーして、LINEなどで主役（〇〇王）に送り、イベント当日までに回答してもらうようにお願いしましょう。</p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Section 2: 主役の準備 -->
+        <section id="prep-target" class="guide-section mb-12 fade-in" style="animation-delay: 0.3s;">
+            <h2 class="text-2xl font-black text-gray-800 mb-6 flex items-center gap-2 border-l-8 border-yellow-400 pl-4">
+                <span class="text-3xl">👑</span> 【事前準備】主役（〇〇王）がやること
+            </h2>
+            
+            <div class="space-y-6 pl-2 sm:pl-6 border-l-2 border-dashed border-yellow-200 ml-4 sm:ml-6 pb-4">
+                
+                <div class="relative bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                    <div class="absolute -left-[45px] sm:-left-[53px] top-6 step-number bg-yellow-400">1</div>
+                    <h3 class="text-xl font-bold text-yellow-600 mb-2">送られてきたURLを開く</h3>
+                    <p class="text-gray-600 leading-relaxed">主催者から送られてきたURLをスマホで開きます。これが「〇〇王」クイズの<strong class="text-red-500 font-bold">「正解」</strong>になります。</p>
+                </div>
+
+                <div class="relative bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                    <div class="absolute -left-[45px] sm:-left-[53px] top-6 step-number bg-yellow-400">2</div>
+                    <h3 class="text-xl font-bold text-yellow-600 mb-2">素直な気持ちで回答する</h3>
+                    <p class="text-gray-600 leading-relaxed">第1問の「名前」は必ず入力してください。その他の問題も、最低回答数（ノルマ）に達するまで回答を入力し、最後に「送信する」を押せば準備完了です！</p>
+                    <div class="mt-3 bg-yellow-50 p-3 rounded text-sm text-yellow-800 font-bold border border-yellow-200">
+                        ※主催者は管理画面の「2. 事前回答を確認・修正する」から回答内容をチェック・修正できますが、主催者自身も当日プレイヤーとして遊びたい場合は、絶対に見ないようにしてください！
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Section 3: 当日の進行 -->
+        <section id="event-day" class="guide-section fade-in" style="animation-delay: 0.4s;">
+            <h2 class="text-2xl font-black text-gray-800 mb-6 flex items-center gap-2 border-l-8 border-blue-500 pl-4">
+                <span class="text-3xl">🎉</span> 【イベント当日】ゲームの進め方
+            </h2>
+            
+            <div class="space-y-6 pl-2 sm:pl-6 border-l-2 border-dashed border-blue-200 ml-4 sm:ml-6">
+                
+                <div class="relative bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                    <div class="absolute -left-[45px] sm:-left-[53px] top-6 step-number bg-blue-500">1</div>
+                    <h3 class="text-xl font-bold text-blue-600 mb-2">ゲームのセットアップ</h3>
+                    <p class="text-gray-600 leading-relaxed mb-4">イベント当日、管理画面から<strong class="text-gray-800">「3. ゲームを進行する」</strong>を開きます。<br>ここで、当日出題する「問題数（設定した問題からランダム抽出されます）」と「配点」を決め、「誰の事前回答データを使うか」を選択します。</p>
+                    <div class="bg-gray-50 p-3 rounded text-sm text-gray-600 border border-gray-200">
+                        💡 <strong class="text-gray-800">ぶっつけ本番モード</strong><br>
+                        事前回答をしていない場合でも「事前回答を使わない」を選択すれば、当日に主役の口から正解を発表してもらう形式で遊ぶことができます。
+                    </div>
+                </div>
+
+                <div class="relative bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                    <div class="absolute -left-[45px] sm:-left-[53px] top-6 step-number bg-blue-500">2</div>
+                    <h3 class="text-xl font-bold text-blue-600 mb-2">画面の準備とプレイヤーの招待</h3>
+                    <p class="text-gray-600 leading-relaxed mb-4">セットアップ画面の下部にある<strong class="text-blue-600 font-bold">「ゲーム画面を開く！」</strong>を押して、プロジェクターや大画面モニターにゲーム画面を映し出します。</p>
+                    <ul class="list-disc list-inside text-gray-600 space-y-2 ml-2">
+                        <li><strong>参加者：</strong> セットアップ画面に表示されている「プレイヤー用QRコード」をスマホで読み取り、名前を入力して待機します。</li>
+                        <li><strong>主催者（進行役）：</strong> 「採点者用QRコード」を自分のスマホで読み取り、リモコン画面を開きます。</li>
+                    </ul>
+                </div>
+
+                <div class="relative bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                    <div class="absolute -left-[45px] sm:-left-[53px] top-6 step-number bg-blue-500">3</div>
+                    <h3 class="text-xl font-bold text-blue-600 mb-2">クイズ大会スタート！</h3>
+                    <p class="text-gray-600 leading-relaxed mb-4">主催者がスマホ（リモコン）の「次へ進む」ボタンを押すと、大画面と全員のスマホが連動して切り替わります。</p>
+                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 space-y-3 text-sm text-gray-700">
+                        <p>📝 <strong>回答フェーズ：</strong> 参加者がスマホから答えを送信します。全員が送信するか、適当な時間で「回答を締め切って採点へ」を押します。</p>
+                        <p>💯 <strong>採点フェーズ：</strong> 大画面に主役の「正解」と、参加者全員の「珍回答」が並びます。ここでイジりながら、主催者がリモコンの <span class="bg-white border border-gray-300 px-2 py-1 rounded font-bold">+10 (正解)</span> ボタン等を押して点数を加算します。</p>
+                        <p>📊 <strong>中間・結果発表：</strong> 半分が終わった時点と、最後の問題が終わった時点で、自動的にランキング形式の発表画面になり、最高潮に盛り上がります！</p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 最後に -->
+        <div class="text-center mt-16 fade-in">
+            <a href="index.html" class="btn btn-primary text-xl py-4 px-10 shadow-lg inline-flex items-center gap-2">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                トップページへ戻る
+            </a>
+        </div>
+
+    </main>
+
+    <!-- 共通フッター -->
+    <footer id="footer-container"></footer>
+
+    <script type="module">
+        import { initCommonUI } from './common.js';
+        document.addEventListener('DOMContentLoaded', () => {
+            initCommonUI();
+        });
+    </script>
+</body>
+</html>
