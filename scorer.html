@@ -17,7 +17,7 @@
         <div id="status-text" class="font-bold text-lg tracking-wide text-yellow-400">読み込み中...</div>
     </div>
 
-    <main class="p-4 sm:p-6 max-w-2xl mx-auto w-full hidden pb-32" id="main-container">
+    <main class="p-4 sm:p-6 max-w-5xl mx-auto w-full hidden pb-32" id="main-container">
         
         <!-- Waiting Panel -->
         <div id="panel-waiting" class="control-panel text-center py-12 fade-in">
@@ -77,46 +77,51 @@
         </div>
 
         <!-- Scoring Panel -->
-        <div id="panel-scoring" class="control-panel hidden fade-in">
-            <div class="card border-t-4 border-red-500 !p-4 sm:!p-6 mb-4">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-red-600">採点フェーズ</h3>
-                    <span class="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded">第 <span class="current-q-num">1</span> 問</span>
-                </div>
-                
-                <p id="scoring-q-text" class="text-sm font-bold text-gray-600 mb-3 border-b border-gray-100 pb-2">問題文</p>
-                
-                <div class="bg-red-50 p-3 rounded-lg border border-red-100 mb-2">
-                    <p class="text-xs font-bold text-red-500 mb-1">👑 <span class="target-name-disp">〇〇</span> 王の正解</p>
-                    <p id="scoring-correct" class="text-xl font-black text-gray-800">正解</p>
+        <div id="panel-scoring" class="control-panel hidden fade-in w-full">
+            <div class="mb-6 text-left">
+                <span class="bg-red-500 text-white text-xl sm:text-2xl font-bold px-6 py-2 rounded-full shadow-sm">
+                    第 <span class="current-q-num">1</span> 問 の正解は...
+                </span>
+            </div>
+
+            <!-- 問題文と正解のエリア -->
+            <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-lg mb-8 border-l-[12px] border-red-500 text-left">
+                <p id="scoring-q-text" class="text-lg sm:text-xl font-bold text-gray-600 mb-4 border-b border-gray-100 pb-4">問題文がここに入ります</p>
+                <div class="bg-red-50 p-4 sm:p-6 rounded-2xl border border-red-200">
+                    <p class="text-md sm:text-lg font-bold text-red-500 mb-2">👑 <span class="target-name-disp">〇〇</span> 王の正解：</p>
+                    <p id="scoring-correct" class="text-2xl sm:text-4xl font-black text-gray-800 leading-tight">正解がここに入ります</p>
                 </div>
             </div>
 
-            <!-- プレイヤーごとの採点リスト -->
-            <div id="scoring-list" class="space-y-3 mb-8">
-                <!-- JSで生成 -->
+            <div class="flex items-center justify-between mb-4">
+                <h4 class="text-xl sm:text-2xl font-black text-gray-700">みんなの回答</h4>
+                <div class="text-sm text-gray-500 font-bold">採点してください</div>
+            </div>
+
+            <!-- 各プレイヤーの回答一覧グリッド -->
+            <div id="scoring-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 w-full text-left mb-24">
+                <!-- JSで動的生成 -->
             </div>
 
             <!-- 次へ進むボタン（画面下部に固定配置） -->
-            <div class="fixed bottom-0 left-0 w-full bg-white p-4 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] z-50">
-                <div class="max-w-2xl mx-auto">
-                    <button id="btn-next-question" class="btn btn-primary text-xl py-4 shadow-md w-full">次の問題へ進む</button>
+            <div class="fixed bottom-0 left-0 w-full bg-white p-4 shadow-[0_-4px_15px_rgba(0,0,0,0.1)] z-50">
+                <div class="max-w-4xl mx-auto flex justify-center">
+                    <button id="btn-next-question" class="btn btn-primary text-lg sm:text-xl py-4 shadow-md w-full max-w-md">次の問題へ進む</button>
                 </div>
             </div>
         </div>
 
         <!-- Result Panel -->
-        <div id="panel-result" class="control-panel hidden fade-in">
+        <div id="panel-result" class="control-panel hidden fade-in max-w-2xl mx-auto">
             <div class="card border-t-4 border-yellow-400 text-center mb-6">
                 <h3 class="font-bold text-yellow-600 mb-4">🏆 結果発表 🏆</h3>
                 <div id="result-ranking" class="rounded-lg overflow-hidden border border-gray-200 mb-8">
                     <!-- ランキング生成 -->
                 </div>
                 
-                <button id="btn-finish-game" class="btn bg-gray-800 hover:bg-gray-900 text-white py-4 w-full text-lg">
-                    ゲームを終了してデータをリセット
-                </button>
-                <p class="text-xs text-gray-400 mt-3 text-left">※リセットすると、参加者のスコアと回答データが消去され、次の新しいゲームを始められるようになります。</p>
+                <p class="text-sm text-gray-500 font-bold bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    ※ゲームの終了とデータリセットは、ゲーム画面（プロジェクター）の操作パネルから行ってください。
+                </p>
             </div>
         </div>
 
@@ -268,15 +273,21 @@
 
         // --- サブUI更新関数 ---
         function updateAnswerCount() {
-            const total = Object.keys(playersData).length;
-            let submitted = 0;
-            Object.values(currentAnswersData).forEach(ans => {
-                if (ans.question_index === currentQuestionIndex && ans.answer.trim() !== "") {
-                    submitted++;
+            const totalPlayers = Object.keys(playersData).length;
+            let submittedCount = 0;
+            
+            Object.keys(playersData).forEach(playerId => {
+                const ansData = currentAnswersData[playerId];
+                if (ansData && ansData.question_index === currentQuestionIndex && typeof ansData.answer === 'string' && ansData.answer.trim().length > 0) {
+                    submittedCount++;
                 }
             });
-            document.getElementById('answer-total-players').textContent = total;
-            document.getElementById('answer-submit-count').textContent = submitted;
+
+            const totalEl = document.getElementById('answer-total-players');
+            const submitEl = document.getElementById('answer-submit-count');
+            
+            if (totalEl) totalEl.textContent = totalPlayers;
+            if (submitEl) submitEl.textContent = submittedCount;
         }
 
         // 全角数字を半角に変換
@@ -314,39 +325,39 @@
                 const pTotal = playersData[playerId].total_score || 0;
                 
                 let pAnswer = "（未回答・時間切れ）";
-                let isAnswered = false;
+                let ansClass = "text-gray-400 italic";
+                
                 const ansData = currentAnswersData[playerId];
-                if (ansData && ansData.question_index === currentQuestionIndex && ansData.answer.trim() !== "") {
+                if (ansData && ansData.question_index === currentQuestionIndex && typeof ansData.answer === 'string' && ansData.answer.trim() !== "") {
                     pAnswer = ansData.answer;
-                    isAnswered = true;
+                    ansClass = "text-gray-800 font-bold";
                 }
 
                 const currentVal = currentRoundScores[playerId] || 0;
 
-                let card = document.getElementById(`scoring-card-${playerId}`);
+                let card = document.getElementById(`scorer-card-${playerId}`);
                 if (!card) {
                     card = document.createElement('div');
-                    card.id = `scoring-card-${playerId}`;
+                    card.id = `scorer-card-${playerId}`;
                     card.setAttribute('data-player-id', playerId);
-                    card.className = "bg-white p-4 rounded-xl shadow-sm border border-gray-200";
+                    card.className = "answer-card flex flex-col h-full bg-white rounded-xl p-4 shadow-sm border-t-4 border-red-500";
                     card.innerHTML = `
-                        <div class="flex justify-between items-center mb-2">
-                            <div class="font-bold text-gray-800 text-lg player-name-text">${pName}</div>
-                            <div class="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded player-total-score">累計: ${pTotal}pt</div>
+                        <div class="flex justify-between items-center mb-3 border-b border-gray-100 pb-2">
+                            <div class="font-bold text-gray-700 text-lg truncate pr-2 player-name-text">${pName}</div>
+                            <div class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-sm font-bold player-total-score">${pScore}pt</div>
                         </div>
-                        <div class="text-base ${isAnswered ? 'text-gray-800 font-bold' : 'text-gray-400'} bg-gray-50 p-3 rounded mb-3 break-all player-answer-text">
-                            ${pAnswer}
+                        <div class="flex-grow flex items-center justify-center p-2 text-center mb-4">
+                            <span class="text-2xl ${ansClass} break-all player-answer-text">${pAnswer}</span>
                         </div>
                         
-                        <div class="flex flex-wrap items-center justify-between gap-2 bg-red-50 p-3 rounded-lg border border-red-100 mt-2">
-                            <button class="btn-correct bg-white border border-gray-300 text-gray-800 font-bold py-2 px-4 rounded shadow-sm hover:bg-gray-100 whitespace-nowrap">
+                        <div class="flex flex-wrap items-center justify-between gap-2 bg-red-50 p-2 rounded border border-red-100 w-full mt-auto">
+                            <button class="btn-correct bg-white border border-gray-300 text-gray-800 font-bold py-1 px-3 rounded shadow-sm hover:bg-gray-100 text-sm whitespace-nowrap">
                                 +${gameSettings.point_base} (正解)
                             </button>
-                            
                             <div class="flex items-center gap-1">
-                                <button class="btn-minus bg-white border border-gray-300 text-gray-700 font-bold w-10 h-10 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-xl">-</button>
-                                <input type="text" class="score-input w-16 h-10 border border-gray-300 rounded text-center font-bold text-lg focus:outline-none focus:border-red-500" data-id="${playerId}" value="${currentVal}">
-                                <button class="btn-plus bg-white border border-gray-300 text-gray-700 font-bold w-10 h-10 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-xl">+</button>
+                                <button class="btn-minus bg-white border border-gray-300 text-gray-700 font-bold w-8 h-8 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-lg">-</button>
+                                <input type="text" class="score-input w-12 h-8 border border-gray-300 rounded text-center font-bold focus:outline-none focus:border-red-500" data-id="${playerId}" value="${currentVal}">
+                                <button class="btn-plus bg-white border border-gray-300 text-gray-700 font-bold w-8 h-8 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-lg">+</button>
                             </div>
                         </div>
                     `;
@@ -371,11 +382,11 @@
 
                     container.appendChild(card);
                 } else {
-                    // 既存カードの更新（入力中状態を維持）
+                    // 既存カードの更新
                     card.querySelector('.player-name-text').textContent = pName;
-                    card.querySelector('.player-total-score').textContent = `累計: ${pTotal}pt`;
+                    card.querySelector('.player-total-score').textContent = `${pScore}pt`;
                     const answerDiv = card.querySelector('.player-answer-text');
-                    answerDiv.className = `text-base ${isAnswered ? 'text-gray-800 font-bold' : 'text-gray-400'} bg-gray-50 p-3 rounded mb-3 break-all player-answer-text`;
+                    answerDiv.className = `text-2xl ${ansClass} break-all player-answer-text`;
                     answerDiv.textContent = pAnswer;
                     
                     const btnCorrect = card.querySelector('.btn-correct');
@@ -482,44 +493,6 @@
                 advancePhase('answer', currentQuestionIndex + 1);
             } else {
                 advancePhase('result');
-            }
-        });
-
-        // ゲーム初期化処理
-        document.getElementById('btn-finish-game').addEventListener('click', async () => {
-            if (!confirm("ゲームを終了し、すべての参加者のスコアと回答データを削除しますか？\n（※問題データは残ります）")) {
-                return;
-            }
-
-            showLoading("データをリセットしています...");
-            try {
-                // 1. プレイヤー削除
-                const playersRef = collection(db, "projects", projectId, "players");
-                const pSnap = await getDocs(playersRef);
-                const pPromises = pSnap.docs.map(d => deleteDoc(d.ref));
-                
-                // 2. 回答削除
-                const ansRef = collection(db, "projects", projectId, "current_answers");
-                const aSnap = await getDocs(ansRef);
-                const aPromises = aSnap.docs.map(d => deleteDoc(d.ref));
-
-                await Promise.all([...pPromises, ...aPromises]);
-
-                // 3. ステート初期化
-                await updateDoc(doc(db, "projects", projectId), {
-                    "game_state.phase": "waiting",
-                    "game_state.current_question_index": 0
-                });
-
-                hideLoading();
-                alert("リセットが完了しました。");
-                // scorer画面（待機状態）のままにするためリロード
-                window.location.reload();
-
-            } catch (e) {
-                console.error(e);
-                alert("リセットに失敗しました。");
-                hideLoading();
             }
         });
 
