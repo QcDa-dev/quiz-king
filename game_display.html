@@ -327,14 +327,20 @@
         // 採点画面の回答一覧グリッド更新
         function updateScoringGrid() {
             const container = document.getElementById('players-answers-grid');
-            container.innerHTML = '';
 
-            // プレイヤーごとにカードを作成
+            // クリーンアップ
+            Array.from(container.children).forEach(child => {
+                const pid = child.getAttribute('data-player-id');
+                if (!playersData[pid]) {
+                    container.removeChild(child);
+                }
+            });
+
+            // 各プレイヤーの採点カードを生成・更新（差分更新）
             Object.keys(playersData).forEach(playerId => {
                 const pName = playersData[playerId].name;
                 const pScore = playersData[playerId].total_score || 0;
                 
-                // 該当プレイヤーの回答を探す
                 let pAnswer = "（未回答・時間切れ）";
                 let ansClass = "text-gray-400 italic";
                 
@@ -346,48 +352,68 @@
 
                 const currentVal = currentRoundScores[playerId] || 0;
 
-                const card = document.createElement('div');
-                card.className = "answer-card";
-                card.innerHTML = `
-                    <div class="flex justify-between items-center mb-3 border-b border-gray-100 pb-2">
-                        <div class="font-bold text-gray-700 text-lg truncate pr-2">${pName}</div>
-                        <div class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-sm font-bold">${pScore}pt</div>
-                    </div>
-                    <div class="flex-grow flex items-center justify-center p-2 text-center mb-4">
-                        <span class="text-2xl ${ansClass} break-all">${pAnswer}</span>
-                    </div>
-                    
-                    <div class="flex flex-wrap items-center justify-between gap-2 bg-red-50 p-2 rounded border border-red-100 w-full mt-auto">
-                        <button class="btn-correct bg-white border border-gray-300 text-gray-800 font-bold py-1 px-3 rounded shadow-sm hover:bg-gray-100 text-sm whitespace-nowrap">
-                            +${gameSettings.point_base} (正解)
-                        </button>
-                        <div class="flex items-center gap-1">
-                            <button class="btn-minus bg-white border border-gray-300 text-gray-700 font-bold w-8 h-8 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-lg">-</button>
-                            <input type="text" class="score-input w-12 h-8 border border-gray-300 rounded text-center font-bold focus:outline-none focus:border-red-500" data-id="${playerId}" value="${currentVal}">
-                            <button class="btn-plus bg-white border border-gray-300 text-gray-700 font-bold w-8 h-8 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-lg">+</button>
+                let card = document.getElementById(`display-card-${playerId}`);
+                if (!card) {
+                    card = document.createElement('div');
+                    card.id = `display-card-${playerId}`;
+                    card.setAttribute('data-player-id', playerId);
+                    card.className = "answer-card flex flex-col h-full";
+                    card.innerHTML = `
+                        <div class="flex justify-between items-center mb-3 border-b border-gray-100 pb-2">
+                            <div class="font-bold text-gray-700 text-lg truncate pr-2 player-name-text">${pName}</div>
+                            <div class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-sm font-bold player-total-score">${pScore}pt</div>
                         </div>
-                    </div>
-                `;
+                        <div class="flex-grow flex items-center justify-center p-2 text-center mb-4">
+                            <span class="text-2xl ${ansClass} break-all player-answer-text">${pAnswer}</span>
+                        </div>
+                        
+                        <div class="flex flex-wrap items-center justify-between gap-2 bg-red-50 p-2 rounded border border-red-100 w-full mt-auto">
+                            <button class="btn-correct bg-white border border-gray-300 text-gray-800 font-bold py-1 px-3 rounded shadow-sm hover:bg-gray-100 text-sm whitespace-nowrap">
+                                +${gameSettings.point_base} (正解)
+                            </button>
+                            <div class="flex items-center gap-1">
+                                <button class="btn-minus bg-white border border-gray-300 text-gray-700 font-bold w-8 h-8 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-lg">-</button>
+                                <input type="text" class="score-input w-12 h-8 border border-gray-300 rounded text-center font-bold focus:outline-none focus:border-red-500" data-id="${playerId}" value="${currentVal}">
+                                <button class="btn-plus bg-white border border-gray-300 text-gray-700 font-bold w-8 h-8 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-lg">+</button>
+                            </div>
+                        </div>
+                    `;
 
-                // ボタンイベント
-                const btnCorrect = card.querySelector('.btn-correct');
-                const btnMinus = card.querySelector('.btn-minus');
-                const btnPlus = card.querySelector('.btn-plus');
-                const input = card.querySelector('.score-input');
+                    // ボタンイベント
+                    const btnCorrect = card.querySelector('.btn-correct');
+                    const btnMinus = card.querySelector('.btn-minus');
+                    const btnPlus = card.querySelector('.btn-plus');
+                    const input = card.querySelector('.score-input');
 
-                btnCorrect.addEventListener('click', () => adjustScore(playerId, gameSettings.point_base));
-                btnMinus.addEventListener('click', () => adjustScore(playerId, -gameSettings.point_step));
-                btnPlus.addEventListener('click', () => adjustScore(playerId, gameSettings.point_step));
+                    btnCorrect.addEventListener('click', () => adjustScore(playerId, gameSettings.point_base));
+                    btnMinus.addEventListener('click', () => adjustScore(playerId, -gameSettings.point_step));
+                    btnPlus.addEventListener('click', () => adjustScore(playerId, gameSettings.point_step));
 
-                input.addEventListener('change', (e) => {
-                    let val = toHalfWidth(e.target.value);
-                    let num = parseInt(val, 10);
-                    if (isNaN(num)) num = 0;
-                    e.target.value = num;
-                    updatePlayerScore(playerId, num);
-                });
+                    input.addEventListener('change', (e) => {
+                        let val = toHalfWidth(e.target.value);
+                        let num = parseInt(val, 10);
+                        if (isNaN(num)) num = 0;
+                        e.target.value = num;
+                        updatePlayerScore(playerId, num);
+                    });
 
-                container.appendChild(card);
+                    container.appendChild(card);
+                } else {
+                    // 既存カードの更新（入力中状態を維持）
+                    card.querySelector('.player-name-text').textContent = pName;
+                    card.querySelector('.player-total-score').textContent = `${pScore}pt`;
+                    const answerDiv = card.querySelector('.player-answer-text');
+                    answerDiv.className = `text-2xl ${ansClass} break-all player-answer-text`;
+                    answerDiv.textContent = pAnswer;
+                    
+                    const btnCorrect = card.querySelector('.btn-correct');
+                    btnCorrect.textContent = `+${gameSettings.point_base} (正解)`;
+
+                    const input = card.querySelector('.score-input');
+                    if (document.activeElement !== input) {
+                        input.value = currentVal;
+                    }
+                }
             });
         }
 
