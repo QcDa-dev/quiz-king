@@ -20,11 +20,25 @@
             </a>
         </div>
 
+        <!-- 発行済みURL表示領域（初期状態はhidden） -->
+        <div id="existing-form-url-container" class="card fade-in hidden relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-2 h-full bg-green-500"></div>
+            <h3 class="text-lg font-bold text-gray-800 mb-2 pl-2">発行済みの回答フォームURL</h3>
+            <p class="text-sm text-gray-600 mb-3 pl-2">すでにフォームは発行されています。このURLを〇〇王（主役）に送ってください。</p>
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <div class="flex items-center gap-2">
+                    <span id="existing-form-url-display" class="text-sm text-blue-600 font-mono break-all flex-1 bg-white p-2 rounded border border-gray-200"></span>
+                    <button id="btn-copy-existing-url" type="button" class="btn btn-secondary !w-auto !py-2 !px-4 flex-shrink-0 text-sm shadow-sm">コピー</button>
+                </div>
+            </div>
+        </div>
+
         <div class="card fade-in">
             <h2 class="text-2xl font-black text-gray-800 mb-2 border-b border-gray-200 pb-3">事前回答用フォームの設定</h2>
             <p class="text-sm text-gray-600 mb-6 leading-relaxed">
                 主役（〇〇王）に事前に答えてもらうクイズを作成します。<br>
-                設定に合わせて、データベースからランダムに問題が抽出されます。
+                設定に合わせて、データベースからランダムに問題が抽出されます。<br>
+                <span class="text-red-500 font-bold">※すでに発行済みの場合、再度実行すると問題の内容が新しく上書き（更新）されます。</span>
             </p>
 
             <form id="setup-form" class="space-y-6">
@@ -81,7 +95,7 @@
 
                 <!-- 送信ボタン -->
                 <div class="pt-6">
-                    <button type="submit" id="btn-generate-form" class="btn btn-primary text-lg py-4">フォームのURLを発行する</button>
+                    <button type="submit" id="btn-generate-form" class="btn btn-primary text-lg py-4">フォームのURLを発行・更新する</button>
                 </div>
             </form>
         </div>
@@ -155,6 +169,20 @@
                     window.location.href = 'notfound.html';
                     return;
                 }
+
+                // 既にフォームが発行されている場合、上部にURLを表示
+                const projectData = docSnap.data();
+                if (projectData.questions && projectData.questions.length > 0) {
+                    const baseUrl = window.location.href.split('form_setup.html')[0];
+                    const formUrl = `${baseUrl}form_answer.html?id=${projectId}`;
+                    document.getElementById('existing-form-url-display').textContent = formUrl;
+                    document.getElementById('existing-form-url-container').classList.remove('hidden');
+                    
+                    document.getElementById('btn-copy-existing-url').onclick = () => {
+                        copyToClipboard(formUrl, "回答用フォームのURLをコピーしました！\n〇〇王本人に送ってください。");
+                    };
+                }
+
                 hideLoading();
                 document.getElementById('main-container').classList.remove('hidden');
             } catch (error) {
@@ -312,6 +340,13 @@
                     
                     document.getElementById('btn-go-admin').onclick = () => {
                         window.location.href = `admin.html?id=${projectId}`;
+                    };
+
+                    // 上部の既存URL表示領域も更新して表示
+                    document.getElementById('existing-form-url-display').textContent = formUrl;
+                    document.getElementById('existing-form-url-container').classList.remove('hidden');
+                    document.getElementById('btn-copy-existing-url').onclick = () => {
+                        copyToClipboard(formUrl, "回答用フォームのURLをコピーしました！\n〇〇王本人に送ってください。");
                     };
 
                     hideLoading();
