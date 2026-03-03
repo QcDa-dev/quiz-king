@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>採点・リモコン - みんなで〇〇王！</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="common.css">
+</head>
+<body class="bg-gray-100">
+    <!-- 共通ヘッダー -->
+    <header id="header-container"></header>
+
+    <!-- 画面上部固定：現在のステータス表示 -->
+    <div id="status-bar" class="sticky top-[60px] z-40 bg-gray-800 text-white p-3 text-center shadow-md hidden">
+        <span class="text-xs text-gray-400 block mb-1">現在のゲーム画面</span>
+        <div id="status-text" class="font-bold text-lg tracking-wide text-yellow-400">読み込み中...</div>
+    </div>
+
+    <main class="p-4 sm:p-6 max-w-2xl mx-auto w-full hidden pb-32" id="main-container">
+        
+        <!-- Waiting Panel -->
+        <div id="panel-waiting" class="control-panel text-center py-12 fade-in">
+            <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <h2 class="text-xl font-bold text-gray-700 mb-2">ゲームはまだ開始されていません</h2>
+            <p class="text-sm text-gray-500 mb-6">管理画面の「ゲームを進行する」からセットアップを行い、開始してください。</p>
+        </div>
+
+        <!-- Title Panel -->
+        <div id="panel-title" class="control-panel hidden fade-in">
+            <div class="card border-t-4 border-red-500 text-center">
+                <h3 class="font-bold text-gray-500 mb-6">「タイトル画面」を表示しています</h3>
+                <h2 class="text-3xl font-black text-gray-800 mb-8"><span class="target-name-disp text-red-500">〇〇</span>王 決定戦！</h2>
+                <button id="btn-next-rules" class="btn btn-primary text-xl py-4 shadow-md w-full">ルール説明へ進む</button>
+            </div>
+        </div>
+
+        <!-- Rules Panel -->
+        <div id="panel-rules" class="control-panel hidden fade-in">
+            <div class="card border-t-4 border-gray-800 text-center">
+                <h3 class="font-bold text-gray-500 mb-6">「ルール説明」を表示しています</h3>
+                <div class="bg-gray-50 p-4 rounded-lg mb-8 text-left">
+                    <p class="font-bold text-gray-700 mb-2">・全 <span id="rule-disp-q">?</span> 問</p>
+                    <p class="font-bold text-gray-700 mb-2">・1問正解につき <span id="rule-disp-base">?</span> 点</p>
+                    <p class="text-sm text-gray-600">・<span id="rule-disp-step">?</span> 点刻みで部分点の付与が可能</p>
+                </div>
+                <button id="btn-next-answer" class="btn btn-primary text-xl py-4 shadow-md w-full">第1問を出題する！</button>
+            </div>
+        </div>
+
+        <!-- Answer Panel -->
+        <div id="panel-answer" class="control-panel hidden fade-in">
+            <div class="card border-t-4 border-blue-500">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-blue-600">問題出題・回答受付中</h3>
+                    <span class="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded">第 <span class="current-q-num">1</span> 問</span>
+                </div>
+                
+                <h2 id="answer-q-text" class="text-xl sm:text-2xl font-black text-gray-800 mb-6 leading-relaxed">問題文</h2>
+                
+                <div class="bg-blue-50 border border-blue-100 p-4 rounded-xl text-center mb-8">
+                    <p class="text-sm font-bold text-blue-800 mb-1">現在の回答状況</p>
+                    <div class="text-3xl font-black text-blue-600"><span id="answer-submit-count">0</span> <span class="text-lg text-blue-400">/ <span id="answer-total-players">0</span> 人</span></div>
+                </div>
+
+                <button id="btn-close-answer" class="btn btn-primary text-xl py-4 shadow-md w-full flex items-center justify-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path></svg>
+                    回答を締め切って採点へ
+                </button>
+            </div>
+        </div>
+
+        <!-- Scoring Panel -->
+        <div id="panel-scoring" class="control-panel hidden fade-in">
+            <div class="card border-t-4 border-red-500 !p-4 sm:!p-6 mb-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-red-600">採点フェーズ</h3>
+                    <span class="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded">第 <span class="current-q-num">1</span> 問</span>
+                </div>
+                
+                <p id="scoring-q-text" class="text-sm font-bold text-gray-600 mb-3 border-b border-gray-100 pb-2">問題文</p>
+                
+                <div class="bg-red-50 p-3 rounded-lg border border-red-100 mb-2">
+                    <p class="text-xs font-bold text-red-500 mb-1">👑 <span class="target-name-disp">〇〇</span> 王の正解</p>
+                    <p id="scoring-correct" class="text-xl font-black text-gray-800">正解</p>
+                </div>
+            </div>
+
+            <!-- プレイヤーごとの採点リスト -->
+            <div id="scoring-list" class="space-y-3 mb-8">
+                <!-- JSで生成 -->
+            </div>
+
+            <!-- 次へ進むボタン（画面下部に固定配置） -->
+            <div class="fixed bottom-0 left-0 w-full bg-white p-4 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] z-50">
+                <div class="max-w-2xl mx-auto">
+                    <button id="btn-next-question" class="btn btn-primary text-xl py-4 shadow-md w-full">次の問題へ進む</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result Panel -->
+        <div id="panel-result" class="control-panel hidden fade-in">
+            <div class="card border-t-4 border-yellow-400 text-center mb-6">
+                <h3 class="font-bold text-yellow-600 mb-4">🏆 結果発表 🏆</h3>
+                <div id="result-ranking" class="rounded-lg overflow-hidden border border-gray-200 mb-8">
+                    <!-- ランキング生成 -->
+                </div>
+                
+                <button id="btn-finish-game" class="btn bg-gray-800 hover:bg-gray-900 text-white py-4 w-full text-lg">
+                    ゲームを終了してデータをリセット
+                </button>
+                <p class="text-xs text-gray-400 mt-3 text-left">※リセットすると、参加者のスコアと回答データが消去され、次の新しいゲームを始められるようになります。</p>
+            </div>
+        </div>
+
+    </main>
+
+    <script type="module">
+        import { db, initCommonUI, showLoading, hideLoading } from './common.js';
+        import { doc, updateDoc, collection, onSnapshot, increment, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const projectId = urlParams.get('id');
+
+        if (!projectId) {
+            window.location.href = 'notfound.html';
+        }
+
+        let currentPhase = "";
+        let currentQuestionIndex = 0;
+        let playQuestions = [];
+        let allProjectQuestions = [];
+        let targetAnswers = {};
+        let targetName = "";
+        let gameSettings = {};
+
+        let playersData = {};
+        let currentAnswersData = {};
+
+        // 今回の問題での獲得ポイントを管理するオブジェクト { playerId: score }
+        let currentRoundScores = {};
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initCommonUI();
+            showLoading("ゲームデータを読み込み中...");
+
+            // 1. プロジェクト状態の監視
+            onSnapshot(doc(db, "projects", projectId), (docSnap) => {
+                if (!docSnap.exists()) {
+                    window.location.href = 'notfound.html';
+                    return;
+                }
+                const data = docSnap.data();
+                const state = data.game_state;
+
+                if (!state) return;
+
+                playQuestions = state.play_questions || [];
+                allProjectQuestions = data.questions || [];
+                targetAnswers = data.target_answers || {};
+                targetName = state.selected_target || "〇〇";
+                gameSettings = state.game_settings || { point_base: 10, point_step: 1, max_questions: 5 };
+
+                // フェーズ変更検知
+                if (currentPhase !== state.phase || currentQuestionIndex !== state.current_question_index) {
+                    currentPhase = state.phase;
+                    currentQuestionIndex = state.current_question_index;
+                    updateUI();
+                }
+
+                hideLoading();
+                document.getElementById('main-container').classList.remove('hidden');
+                document.getElementById('status-bar').classList.remove('hidden');
+            });
+
+            // 2. プレイヤー情報の監視
+            onSnapshot(collection(db, "projects", projectId, "players"), (snap) => {
+                playersData = {};
+                snap.forEach(doc => { playersData[doc.id] = doc.data(); });
+                
+                if (currentPhase === 'answer') updateAnswerCount();
+                if (currentPhase === 'result') renderResultRanking();
+            });
+
+            // 3. 回答データの監視
+            onSnapshot(collection(db, "projects", projectId, "current_answers"), (snap) => {
+                currentAnswersData = {};
+                snap.forEach(doc => { currentAnswersData[doc.id] = doc.data(); });
+                
+                if (currentPhase === 'answer') updateAnswerCount();
+            });
+        });
+
+        // --- UI更新メイン ---
+        function updateUI() {
+            // パネル切り替え
+            document.querySelectorAll('.control-panel').forEach(el => el.classList.add('hidden'));
+            const targetPanel = document.getElementById(`panel-${currentPhase}`);
+            if (targetPanel) targetPanel.classList.remove('hidden');
+
+            // 共通テキスト更新
+            document.querySelectorAll('.target-name-disp').forEach(el => el.textContent = targetName);
+            document.querySelectorAll('.current-q-num').forEach(el => el.textContent = currentQuestionIndex + 1);
+
+            const statusText = document.getElementById('status-text');
+
+            if (currentPhase === 'waiting') {
+                statusText.textContent = "待機中";
+                document.getElementById('status-bar').classList.add('hidden');
+            } else {
+                document.getElementById('status-bar').classList.remove('hidden');
+            }
+
+            if (currentPhase === 'title') {
+                statusText.textContent = "タイトル画面";
+            }
+            else if (currentPhase === 'rules') {
+                statusText.textContent = "ルール説明";
+                document.getElementById('rule-disp-q').textContent = gameSettings.max_questions;
+                document.getElementById('rule-disp-base').textContent = gameSettings.point_base;
+                document.getElementById('rule-disp-step').textContent = gameSettings.point_step;
+            }
+            else if (currentPhase === 'answer') {
+                statusText.textContent = `第${currentQuestionIndex + 1}問: 回答受付中`;
+                document.getElementById('answer-q-text').textContent = playQuestions[currentQuestionIndex] || "";
+                updateAnswerCount();
+            }
+            else if (currentPhase === 'scoring') {
+                statusText.textContent = `第${currentQuestionIndex + 1}問: 採点中`;
+                
+                // 次のフェーズのボタンテキスト設定
+                if (currentQuestionIndex + 1 < gameSettings.max_questions) {
+                    document.getElementById('btn-next-question').textContent = "採点を完了して次の問題へ";
+                    document.getElementById('btn-next-question').classList.replace('bg-yellow-500', 'btn-primary');
+                } else {
+                    document.getElementById('btn-next-question').textContent = "採点を完了して結果発表へ！";
+                    document.getElementById('btn-next-question').classList.replace('btn-primary', 'bg-yellow-500');
+                    document.getElementById('btn-next-question').classList.add('hover:bg-yellow-600', 'text-white');
+                }
+
+                renderScoringList();
+            }
+            else if (currentPhase === 'result') {
+                statusText.textContent = "結果発表";
+                renderResultRanking();
+            }
+        }
+
+        // --- サブUI更新関数 ---
+        function updateAnswerCount() {
+            const total = Object.keys(playersData).length;
+            let submitted = 0;
+            Object.values(currentAnswersData).forEach(ans => {
+                if (ans.question_index === currentQuestionIndex && ans.answer.trim() !== "") {
+                    submitted++;
+                }
+            });
+            document.getElementById('answer-total-players').textContent = total;
+            document.getElementById('answer-submit-count').textContent = submitted;
+        }
+
+        // 全角数字を半角に変換
+        function toHalfWidth(str) {
+            return str.replace(/[０-９]/g, function(s) {
+                return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
+            });
+        }
+
+        function renderScoringList() {
+            const container = document.getElementById('scoring-list');
+            container.innerHTML = '';
+            
+            const qText = playQuestions[currentQuestionIndex] || "";
+            document.getElementById('scoring-q-text').textContent = qText;
+
+            let correctAnswer = "（本人に聞いてみましょう！）";
+            const origIdx = allProjectQuestions.indexOf(qText);
+            if (origIdx !== -1 && targetAnswers[targetName] && targetAnswers[targetName][origIdx] !== undefined) {
+                correctAnswer = targetAnswers[targetName][origIdx];
+                if (correctAnswer.trim() === "") correctAnswer = "（未回答）";
+            }
+            document.getElementById('scoring-correct').textContent = correctAnswer;
+
+            // 各プレイヤーの採点カードを生成
+            Object.keys(playersData).forEach(playerId => {
+                const pName = playersData[playerId].name;
+                const pTotal = playersData[playerId].total_score || 0;
+                
+                let pAnswer = "（未回答・時間切れ）";
+                let isAnswered = false;
+                const ansData = currentAnswersData[playerId];
+                if (ansData && ansData.question_index === currentQuestionIndex && ansData.answer.trim() !== "") {
+                    pAnswer = ansData.answer;
+                    isAnswered = true;
+                }
+
+                const currentVal = currentRoundScores[playerId] || 0;
+
+                const div = document.createElement('div');
+                div.className = "bg-white p-4 rounded-xl shadow-sm border border-gray-200";
+                div.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="font-bold text-gray-800 text-lg">${pName}</div>
+                        <div class="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded">累計: ${pTotal}pt</div>
+                    </div>
+                    <div class="text-base ${isAnswered ? 'text-gray-800 font-bold' : 'text-gray-400'} bg-gray-50 p-3 rounded mb-3 break-all">
+                        ${pAnswer}
+                    </div>
+                    
+                    <div class="flex flex-col sm:flex-row items-center gap-2 bg-red-50 p-2 rounded-lg border border-red-100">
+                        <div class="flex items-center w-full sm:w-auto">
+                            <span class="text-xs font-bold text-red-500 w-12 flex-shrink-0">今回の<br>得点</span>
+                            <button class="btn-correct bg-white border border-gray-300 text-gray-800 font-bold py-2 px-3 rounded shadow-sm hover:bg-gray-100 flex-1 sm:flex-none whitespace-nowrap">
+                                +${gameSettings.point_base} (正解)
+                            </button>
+                        </div>
+                        
+                        <div class="flex items-center gap-1 w-full sm:flex-1 justify-end mt-2 sm:mt-0">
+                            <button class="btn-minus bg-white border border-gray-300 text-gray-700 font-bold py-2 px-4 rounded shadow-sm hover:bg-gray-100">-</button>
+                            <input type="text" class="score-input w-16 p-2 border border-gray-300 rounded text-center font-bold text-lg focus:outline-none focus:border-red-500" data-id="${playerId}" value="${currentVal}">
+                            <button class="btn-plus bg-white border border-gray-300 text-gray-700 font-bold py-2 px-4 rounded shadow-sm hover:bg-gray-100">+</button>
+                        </div>
+                    </div>
+                `;
+
+                // ボタンイベント
+                const btnCorrect = div.querySelector('.btn-correct');
+                const btnMinus = div.querySelector('.btn-minus');
+                const btnPlus = div.querySelector('.btn-plus');
+                const input = div.querySelector('.score-input');
+
+                btnCorrect.addEventListener('click', () => adjustScore(playerId, gameSettings.point_base));
+                btnMinus.addEventListener('click', () => adjustScore(playerId, -gameSettings.point_step));
+                btnPlus.addEventListener('click', () => adjustScore(playerId, gameSettings.point_step));
+
+                input.addEventListener('change', (e) => {
+                    let val = toHalfWidth(e.target.value);
+                    let num = parseInt(val, 10);
+                    if (isNaN(num)) num = 0;
+                    e.target.value = num;
+                    updatePlayerScore(playerId, num);
+                });
+
+                container.appendChild(div);
+            });
+        }
+
+        // 得点調整ロジック（ローカルステートとFirestoreの同期）
+        function adjustScore(playerId, amount) {
+            const currentVal = currentRoundScores[playerId] || 0;
+            const newVal = currentVal + amount;
+            updatePlayerScore(playerId, newVal);
+        }
+
+        function updatePlayerScore(playerId, newValue) {
+            const oldValue = currentRoundScores[playerId] || 0;
+            const diff = newValue - oldValue;
+            currentRoundScores[playerId] = newValue;
+            
+            // UI反映
+            const input = document.querySelector(`.score-input[data-id="${playerId}"]`);
+            if (input) input.value = newValue;
+
+            // Firestore更新 (差分を加算)
+            if (diff !== 0) {
+                const ref = doc(db, "projects", projectId, "players", playerId);
+                updateDoc(ref, { total_score: increment(diff) }).catch(e => console.error(e));
+            }
+        }
+
+        function renderResultRanking() {
+            const sortedPlayers = Object.keys(playersData).map(id => ({
+                name: playersData[id].name,
+                score: playersData[id].total_score || 0
+            })).sort((a, b) => {
+                if (b.score !== a.score) return b.score - a.score;
+                return a.name.localeCompare(b.name);
+            });
+
+            const container = document.getElementById('result-ranking');
+            container.innerHTML = '';
+            
+            sortedPlayers.forEach((p, idx) => {
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center p-3 bg-white border-b border-gray-100";
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="font-bold text-gray-400 w-6 text-right">${idx + 1}位</span>
+                        <span class="font-bold text-gray-800">${p.name}</span>
+                    </div>
+                    <span class="font-black text-red-500">${p.score} <span class="text-xs font-normal text-gray-500">pt</span></span>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // --- フェーズ移行処理 ---
+        async function advancePhase(newPhase, newIndex = null) {
+            const updates = { "game_state.phase": newPhase };
+            if (newIndex !== null) {
+                updates["game_state.current_question_index"] = newIndex;
+            }
+            
+            showLoading("画面を切り替えています...");
+            try {
+                await updateDoc(doc(db, "projects", projectId), updates);
+            } catch (e) {
+                console.error(e);
+                alert("通信エラーが発生しました。");
+            }
+            hideLoading();
+        }
+
+        // 各ボタンのアクション
+        document.getElementById('btn-next-rules').addEventListener('click', () => advancePhase('rules'));
+        
+        document.getElementById('btn-next-answer').addEventListener('click', () => advancePhase('answer', 0));
+
+        document.getElementById('btn-close-answer').addEventListener('click', () => {
+            const total = Object.keys(playersData).length;
+            let submitted = parseInt(document.getElementById('answer-submit-count').textContent, 10) || 0;
+
+            if (submitted < total) {
+                if (!confirm(`まだ回答していないプレイヤーが ${total - submitted} 人います。\n締め切って採点に進みますか？`)) {
+                    return;
+                }
+            }
+            
+            // 採点フェーズに入る前に今回の得点ステートをリセット
+            currentRoundScores = {};
+            Object.keys(playersData).forEach(id => { currentRoundScores[id] = 0; });
+            
+            advancePhase('scoring');
+        });
+
+        document.getElementById('btn-next-question').addEventListener('click', () => {
+            if (currentQuestionIndex + 1 < gameSettings.max_questions) {
+                advancePhase('answer', currentQuestionIndex + 1);
+            } else {
+                advancePhase('result');
+            }
+        });
+
+        // ゲーム初期化処理
+        document.getElementById('btn-finish-game').addEventListener('click', async () => {
+            if (!confirm("ゲームを終了し、すべての参加者のスコアと回答データを削除しますか？\n（※問題データは残ります）")) {
+                return;
+            }
+
+            showLoading("データをリセットしています...");
+            try {
+                // 1. プレイヤー削除
+                const playersRef = collection(db, "projects", projectId, "players");
+                const pSnap = await getDocs(playersRef);
+                const pPromises = pSnap.docs.map(d => deleteDoc(d.ref));
+                
+                // 2. 回答削除
+                const ansRef = collection(db, "projects", projectId, "current_answers");
+                const aSnap = await getDocs(ansRef);
+                const aPromises = aSnap.docs.map(d => deleteDoc(d.ref));
+
+                await Promise.all([...pPromises, ...aPromises]);
+
+                // 3. ステート初期化
+                await updateDoc(doc(db, "projects", projectId), {
+                    "game_state.phase": "waiting",
+                    "game_state.current_question_index": 0
+                });
+
+                hideLoading();
+                alert("リセットが完了しました。");
+                // セットアップ画面に戻る
+                window.location.href = `game_setup.html?id=${projectId}`;
+
+            } catch (e) {
+                console.error(e);
+                alert("リセットに失敗しました。");
+                hideLoading();
+            }
+        });
+
+    </script>
+</body>
+</html>
