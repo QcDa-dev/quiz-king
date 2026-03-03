@@ -215,6 +215,8 @@
                     targetNames.forEach(name => {
                         selectHtml += `<option value="${name}">${name} さんの回答データを使用</option>`;
                     });
+                    // 事前回答がある場合でもぶっつけ本番形式を選べるように追加
+                    selectHtml += `<option value="__adlib__">事前回答を使わない（ぶっつけ本番形式）</option>`;
                     selectHtml += `</select>`;
                     targetArea.innerHTML = selectHtml;
                 } else {
@@ -287,9 +289,15 @@
                 document.getElementById('input-adlib-name').value = '';
                 document.getElementById('adlib-modal').classList.remove('hidden');
             } else {
-                // 通常開始
                 const targetName = document.getElementById('select-target').value;
-                startGameProcess(targetName);
+                if (targetName === "__adlib__") {
+                    // ぶっつけ本番を選択した場合
+                    document.getElementById('input-adlib-name').value = '';
+                    document.getElementById('adlib-modal').classList.remove('hidden');
+                } else {
+                    // 通常開始
+                    startGameProcess(targetName);
+                }
             }
         });
 
