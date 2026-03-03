@@ -108,10 +108,10 @@
 
                 <!-- 結果発表フェーズ -->
                 <div id="phase-result" class="player-phase fade-in hidden text-center">
-                    <h3 class="text-2xl font-black text-yellow-600 mb-6 mt-4">🏆 最終結果 🏆</h3>
+                    <h3 id="player-result-title" class="text-2xl font-black text-yellow-600 mb-6 mt-4">🏆 最終結果 🏆</h3>
                     
-                    <div class="bg-white rounded-2xl shadow-md p-5 border-t-4 border-yellow-400 mb-6">
-                        <p class="text-gray-500 font-bold mb-1">あなたの最終スコア</p>
+                    <div id="player-result-card" class="bg-white rounded-2xl shadow-md p-5 border-t-4 border-yellow-400 mb-6">
+                        <p class="text-gray-500 font-bold mb-1">あなたの現在のスコア</p>
                         <div class="text-5xl font-black text-gray-800"><span id="result-my-score">0</span><span class="text-xl text-gray-500 font-bold ml-1">pt</span></div>
                         <div class="mt-2 text-sm text-red-500 font-bold" id="result-my-rank">総合 第 ? 位</div>
                     </div>
@@ -316,7 +316,7 @@
                 }
 
                 if (currentPhase === 'scoring') renderScoringPlayers();
-                if (currentPhase === 'result') renderResultRanking();
+                if (currentPhase === 'result' || currentPhase === 'mid_result') renderResultRanking();
             });
 
             // 3. 全員の回答状況の監視（採点フェーズでの表示用）
@@ -393,7 +393,12 @@
                 
                 renderScoringPlayers();
             }
-            else if (currentPhase === 'result') {
+            else if (currentPhase === 'result' || currentPhase === 'mid_result') {
+                const isMid = currentPhase === 'mid_result';
+                document.getElementById('player-result-title').textContent = isMid ? '📊 中間発表 📊' : '🏆 最終結果 🏆';
+                document.getElementById('player-result-title').className = isMid ? 'text-2xl font-black text-blue-600 mb-6 mt-4' : 'text-2xl font-black text-yellow-600 mb-6 mt-4';
+                document.getElementById('player-result-card').className = isMid ? 'bg-white rounded-2xl shadow-md p-5 border-t-4 border-blue-400 mb-6' : 'bg-white rounded-2xl shadow-md p-5 border-t-4 border-yellow-400 mb-6';
+                
                 switchPhasePanel('phase-result');
                 renderResultRanking();
             }
