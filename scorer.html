@@ -22,8 +22,8 @@
         <!-- Waiting Panel -->
         <div id="panel-waiting" class="control-panel text-center py-12 fade-in">
             <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <h2 class="text-xl font-bold text-gray-700 mb-2">ゲームはまだ開始されていません</h2>
-            <p class="text-sm text-gray-500 mb-6">管理画面の「ゲームを進行する」からセットアップを行い、開始してください。</p>
+            <h2 class="text-xl font-bold text-gray-700 mb-2">ゲーム開始をお待ちください</h2>
+            <p class="text-sm text-gray-500 mb-6">ゲーム開始ボタンをスクリーン上で押して下さい。</p>
         </div>
 
         <!-- Title Panel -->
@@ -308,18 +308,15 @@
                         ${pAnswer}
                     </div>
                     
-                    <div class="flex flex-col sm:flex-row items-center gap-2 bg-red-50 p-2 rounded-lg border border-red-100">
-                        <div class="flex items-center w-full sm:w-auto">
-                            <span class="text-xs font-bold text-red-500 w-12 flex-shrink-0">今回の<br>得点</span>
-                            <button class="btn-correct bg-white border border-gray-300 text-gray-800 font-bold py-2 px-3 rounded shadow-sm hover:bg-gray-100 flex-1 sm:flex-none whitespace-nowrap">
-                                +${gameSettings.point_base} (正解)
-                            </button>
-                        </div>
+                    <div class="flex flex-wrap items-center justify-between gap-2 bg-red-50 p-3 rounded-lg border border-red-100 mt-2">
+                        <button class="btn-correct bg-white border border-gray-300 text-gray-800 font-bold py-2 px-4 rounded shadow-sm hover:bg-gray-100 whitespace-nowrap">
+                            +${gameSettings.point_base} (正解)
+                        </button>
                         
-                        <div class="flex items-center gap-1 w-full sm:flex-1 justify-end mt-2 sm:mt-0">
-                            <button class="btn-minus bg-white border border-gray-300 text-gray-700 font-bold py-2 px-4 rounded shadow-sm hover:bg-gray-100">-</button>
-                            <input type="text" class="score-input w-16 p-2 border border-gray-300 rounded text-center font-bold text-lg focus:outline-none focus:border-red-500" data-id="${playerId}" value="${currentVal}">
-                            <button class="btn-plus bg-white border border-gray-300 text-gray-700 font-bold py-2 px-4 rounded shadow-sm hover:bg-gray-100">+</button>
+                        <div class="flex items-center gap-1">
+                            <button class="btn-minus bg-white border border-gray-300 text-gray-700 font-bold w-10 h-10 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-xl">-</button>
+                            <input type="text" class="score-input w-16 h-10 border border-gray-300 rounded text-center font-bold text-lg focus:outline-none focus:border-red-500" data-id="${playerId}" value="${currentVal}">
+                            <button class="btn-plus bg-white border border-gray-300 text-gray-700 font-bold w-10 h-10 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-xl">+</button>
                         </div>
                     </div>
                 `;
