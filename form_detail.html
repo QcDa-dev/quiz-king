@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>回答の確認・修正 - みんなで〇〇王！</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        .edit-card:focus-within {
+            border-color: #fca5a5;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- 共通ヘッダー -->
+    <header id="header-container"></header>
+
+    <main class="p-4 sm:p-6 max-w-3xl mx-auto w-full hidden" id="main-container">
+        
+        <div class="mb-4">
+            <a id="back-to-check" href="#" class="text-sm text-gray-500 hover:text-red-500 flex items-center transition-colors w-fit">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                回答一覧へ戻る
+            </a>
+        </div>
+
+        <div class="card fade-in mb-6">
+            <h2 class="text-2xl font-black text-gray-800 mb-2 border-b border-gray-200 pb-3 flex items-center gap-2">
+                <span id="target-name-display" class="text-red-500">〇〇</span> さんの回答データ
+            </h2>
+            <p class="text-sm text-gray-600 leading-relaxed">
+                誤字脱字や、クイズとして成立しない回答（短すぎる・意味不明など）がある場合、主催者側で修正して保存できます。
+            </p>
+        </div>
+
+        <!-- 編集フォーム -->
+        <form id="edit-form" class="space-y-4 fade-in" style="animation-delay: 0.1s;">
+            <div id="details-container" class="space-y-4">
+                <!-- JSで動的に生成 -->
+            </div>
+
+            <div class="pt-6 sticky bottom-4 z-40">
+                <button type="submit" id="btn-save" class="btn btn-primary text-lg py-4 shadow-lg flex items-center justify-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                    修正内容を保存する
+                </button>
+            </div>
+        </form>
+
+    </main>
+
+    <!-- 共通フッター -->
+    <footer id="footer-container" class="mt-12"></footer>
+
+    <script type="module">
+        import { db, initCommonUI, showLoading, hideLoading } from './common.js';
+        import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        let projectId = "";
+        let targetName = "";
+        let projectData = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            initCommonUI();
+
+            // URLからプロジェクトIDとターゲット名を取得
+            const urlParams = new URLSearchParams(window.location.search);
+            projectId = urlParams.get('id');
+            targetName = urlParams.get('target');
+
+            if (!projectId || !targetName) {
+                window.location.href = 'notfound.html';
+                return;
+            }
+
+            document.getElementById('back-to-check').href = `form_check.html?id=${projectId}`;
+            document.getElementById('target-name-display').textContent = targetName;
+
+            showLoading("回答データを読み込んでいます...");
+
+            try {
+                const docRef = doc(db, "projects", projectId);
+                const docSnap = await getDoc(docRef);
+                
+                if (!docSnap.exists()) {
+                    window.location.href = 'notfound.html';
+                    return;
+                }
+
+                projectData = docSnap.data();
+                
+                if (!projectData.questions || !projectData.target_answers || !projectData.target_answers[targetName]) {
+                    alert("回答データが見つかりません。");
+                    window.location.href = `form_check.html?id=${projectId}`;
+                    return;
+                }
+
+                renderDetails(projectData.questions, projectData.target_answers[targetName]);
+                
+                hideLoading();
+                document.getElementById('main-container').classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Error fetching project:", error);
+                alert("データの取得に失敗しました。");
+                hideLoading();
+            }
+        });
+
+        // 詳細リストの描画
+        function renderDetails(questions, answers) {
+            const container = document.getElementById('details-container');
+            container.innerHTML = '';
+
+            questions.forEach((qText, index) => {
+                const isFirst = (index === 0);
+                const userAnswer = answers[index] || "";
+                
+                const card = document.createElement('div');
+                card.className = "edit-card bg-white p-4 sm:p-5 rounded-xl border border-gray-200 shadow-sm transition-all";
+                
+                if (isFirst) {
+                    card.classList.add('border-red-200', 'bg-red-50');
+                }
+
+                let badgeHtml = '';
+                if (!userAnswer || userAnswer.trim() === "") {
+                    badgeHtml = `<span class="bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded-full font-bold mb-2 inline-block">未回答</span>`;
+                }
+
+                card.innerHTML = `
+                    <div class="flex items-start gap-3 mb-3">
+                        <div class="w-7 h-7 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold flex-shrink-0 text-xs mt-0.5">
+                            Q${index + 1}
+                        </div>
+                        <div class="flex-1">
+                            ${badgeHtml}
+                            <h3 class="text-sm sm:text-base font-bold text-gray-800">${qText}</h3>
+                        </div>
+                    </div>
+                    <div class="pl-10">
+                        <textarea id="edit-answer-${index}" rows="${isFirst ? 1 : 2}" 
+                            class="w-full p-3 border ${userAnswer ? 'border-gray-300' : 'border-red-300 bg-red-50'} rounded-lg focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors resize-y text-gray-700" 
+                            placeholder="回答を入力（修正）...">${userAnswer}</textarea>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        // 保存処理
+        document.getElementById('edit-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // 修正されたデータを取得
+            const updatedAnswers = {};
+            projectData.questions.forEach((_, index) => {
+                const val = document.getElementById(`edit-answer-${index}`).value.trim();
+                updatedAnswers[index] = val;
+            });
+
+            // 名前（Q1）のバリデーション
+            if (!updatedAnswers[0]) {
+                alert("第1問目（名前）は必須です。");
+                document.getElementById('edit-answer-0').focus();
+                return;
+            }
+
+            showLoading("変更を保存しています...");
+
+            try {
+                const projectRef = doc(db, "projects", projectId);
+                
+                // 再度最新のデータを取得してからマージ（他人の回答消去を防ぐため）
+                const docSnap = await getDoc(projectRef);
+                const currentData = docSnap.data();
+                const allTargetAnswers = currentData.target_answers || {};
+                
+                // 元の名前のデータを削除して新しい名前で登録する処理（名前を変更した場合への対応）
+                const oldName = targetName;
+                const newName = updatedAnswers[0];
+                
+                if (oldName !== newName) {
+                    delete allTargetAnswers[oldName];
+                }
+                
+                // データを上書き
+                allTargetAnswers[newName] = updatedAnswers;
+
+                // 更新
+                await updateDoc(projectRef, {
+                    target_answers: allTargetAnswers,
+                    selected_target: newName // もしゲーム進行用に選択中であれば更新をかけておく
+                });
+
+                hideLoading();
+                alert("修正内容を保存しました！");
+                
+                // URLの名前パラメータも更新してリロード状態にする
+                window.location.href = `form_check.html?id=${projectId}`;
+
+            } catch (error) {
+                console.error("Error updating answers:", error);
+                alert("保存に失敗しました。");
+                hideLoading();
+            }
+        });
+    </script>
+</body>
+</html>
