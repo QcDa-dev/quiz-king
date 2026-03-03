@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ゲーム進行設定 - みんなで〇〇王！</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="common.css">
+    <!-- QRコード生成ライブラリ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+    <!-- 共通ヘッダー -->
+    <header id="header-container"></header>
+
+    <main class="p-4 sm:p-6 max-w-4xl mx-auto w-full hidden" id="main-container">
+        
+        <div class="mb-4">
+            <a id="back-to-admin" href="#" class="text-sm text-gray-500 hover:text-red-500 flex items-center transition-colors w-fit">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                管理画面へ戻る
+            </a>
+        </div>
+
+        <div class="text-center mb-8 fade-in">
+            <h1 class="text-3xl font-black text-red-500 mb-2">ゲームのセットアップ</h1>
+            <p class="text-gray-600 text-sm sm:text-base leading-relaxed">
+                この画面はプロジェクター等の大画面で映すか、主催者のPCで操作します。<br>
+                準備が整ったらゲームを開始しましょう！
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- 左カラム：招待＆参加者状況 -->
+            <div class="space-y-6 fade-in" style="animation-delay: 0.1s;">
+                <div class="card !mb-0 h-full flex flex-col">
+                    <h2 class="text-xl font-bold text-gray-800 border-b border-gray-200 pb-2 mb-4">1. プレイヤーの招待</h2>
+                    
+                    <!-- 参加人数リアルタイム表示 -->
+                    <div class="bg-red-50 rounded-xl p-4 text-center mb-6 border border-red-100 shadow-inner">
+                        <p class="text-sm font-bold text-red-600 mb-1">現在の参加エントリー人数</p>
+                        <div class="text-4xl font-black text-red-500"><span id="player-count">0</span> <span class="text-lg text-red-400">人</span></div>
+                    </div>
+
+                    <div class="space-y-6 flex-grow">
+                        <!-- プレイヤー用招待 -->
+                        <div>
+                            <p class="font-bold text-gray-700 mb-2 flex items-center gap-1">
+                                <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                                プレイヤー（回答者）用
+                            </p>
+                            <div class="flex flex-col sm:flex-row items-center gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                <div id="qrcode-player" class="bg-white p-2 rounded shadow-sm"></div>
+                                <div class="flex-1 w-full text-center sm:text-left">
+                                    <p class="text-xs text-gray-500 mb-2">参加者はこのQRを読み取ってください</p>
+                                    <button id="btn-copy-player" class="btn btn-secondary !py-2 !text-sm w-full">URLをコピー</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 採点者用招待 -->
+                        <div>
+                            <p class="font-bold text-gray-700 mb-2 flex items-center gap-1">
+                                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                                採点者（リモコン）用
+                            </p>
+                            <div class="flex flex-col sm:flex-row items-center gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                <div id="qrcode-scorer" class="bg-white p-2 rounded shadow-sm"></div>
+                                <div class="flex-1 w-full text-center sm:text-left">
+                                    <p class="text-xs text-gray-500 mb-2">進行役・採点役のスマホで読み取ります</p>
+                                    <button id="btn-copy-scorer" class="btn btn-secondary !py-2 !text-sm w-full">URLをコピー</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右カラム：設定＆開始 -->
+            <div class="space-y-6 fade-in" style="animation-delay: 0.2s;">
+                <div class="card !mb-0 h-full flex flex-col">
+                    <h2 class="text-xl font-bold text-gray-800 border-b border-gray-200 pb-2 mb-4">2. ルールと開始設定</h2>
+                    
+                    <form id="start-form" class="space-y-5 flex-grow">
+                        <!-- 配点設定 -->
+                        <div>
+                            <label class="font-bold text-gray-700 block mb-1">配点ルール</label>
+                            <div class="flex items-center gap-2">
+                                <div class="flex-1">
+                                    <span class="text-xs text-gray-500 block mb-1">基本点（1問）</span>
+                                    <input type="number" id="input-base-point" value="10" min="1" class="w-full p-2 border border-gray-300 rounded focus:ring-red-500 focus:border-red-500 text-center font-bold">
+                                </div>
+                                <div class="flex-1">
+                                    <span class="text-xs text-gray-500 block mb-1">刻み幅（部分点など）</span>
+                                    <input type="number" id="input-step-point" value="1" min="1" class="w-full p-2 border border-gray-300 rounded focus:ring-red-500 focus:border-red-500 text-center font-bold">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 問題数設定 -->
+                        <div>
+                            <label class="font-bold text-gray-700 block mb-1">プレイ設問数</label>
+                            <span class="text-xs text-gray-500 block mb-1">事前回答した問題の中から、ランダムに何問出題するか</span>
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="input-play-count" value="5" min="1" max="20" class="w-24 p-2 border border-gray-300 rounded focus:ring-red-500 focus:border-red-500 text-center font-bold text-lg">
+                                <span class="font-bold text-gray-600">問</span>
+                                <span class="text-xs text-gray-400 ml-2" id="max-available-text">(最大 ? 問)</span>
+                            </div>
+                        </div>
+
+                        <!-- 対象者選択 -->
+                        <div class="pt-4 border-t border-gray-200">
+                            <label class="font-bold text-gray-700 block mb-2">対象者（〇〇王）の選択</label>
+                            <div id="target-selection-area">
+                                <!-- JSでドロップダウンまたはメッセージを生成 -->
+                            </div>
+                        </div>
+
+                        <!-- 開始ボタン -->
+                        <div class="pt-6 mt-auto">
+                            <button type="submit" id="btn-start-game" class="btn btn-primary text-xl py-4 shadow-lg w-full flex items-center justify-center gap-2">
+                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+                                ゲーム画面を開く！
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 共通フッター -->
+    <footer id="footer-container" class="mt-8"></footer>
+
+    <!-- ぶっつけ本番用モーダル -->
+    <div id="adlib-modal" class="modal-overlay hidden">
+        <div class="modal-content fade-in text-center">
+            <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2">ぶっつけ本番で開始します</h3>
+            <p class="text-sm text-gray-600 mb-6 text-left">
+                事前回答データがありません。<br>
+                このままゲームを開始し、〇〇王本人にもその場で正解を発表してもらう「ぶっつけ本番」形式で進めます。<br>
+                主役（〇〇王）の名前を入力してください。
+            </p>
+            
+            <input type="text" id="input-adlib-name" placeholder="例：たっくん" class="w-full p-3 border border-gray-300 rounded-lg mb-6 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500" required>
+            
+            <div class="flex gap-3">
+                <button id="btn-cancel-adlib" type="button" class="btn btn-secondary flex-1">キャンセル</button>
+                <button id="btn-confirm-adlib" type="button" class="btn btn-primary flex-1">ゲーム開始</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, initCommonUI, showLoading, hideLoading, copyToClipboard } from './common.js';
+        import { doc, getDoc, updateDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        let projectId = "";
+        let projectData = null;
+        let availableQuestionsCount = 0;
+        let hasTargetAnswers = false;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            initCommonUI();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            projectId = urlParams.get('id');
+
+            if (!projectId) {
+                window.location.href = 'notfound.html';
+                return;
+            }
+
+            document.getElementById('back-to-admin').href = `admin.html?id=${projectId}`;
+
+            showLoading("ゲーム設定を読み込み中...");
+
+            try {
+                // プロジェクト情報の取得
+                const docRef = doc(db, "projects", projectId);
+                const docSnap = await getDoc(docRef);
+                
+                if (!docSnap.exists()) {
+                    window.location.href = 'notfound.html';
+                    return;
+                }
+
+                projectData = docSnap.data();
+                
+                // 問題数の設定
+                const questions = projectData.questions || [];
+                // 第1問（名前）を除外した数が実際に出題できる問題数
+                availableQuestionsCount = Math.max(0, questions.length - 1);
+                
+                const inputPlayCount = document.getElementById('input-play-count');
+                const maxAvailableText = document.getElementById('max-available-text');
+                
+                inputPlayCount.max = availableQuestionsCount;
+                if (availableQuestionsCount < 5) {
+                    inputPlayCount.value = availableQuestionsCount;
+                }
+                maxAvailableText.textContent = `(最大 ${availableQuestionsCount} 問)`;
+
+                // 対象者（事前回答）の状況をチェック
+                const targetAnswers = projectData.target_answers || {};
+                const targetNames = Object.keys(targetAnswers);
+                const targetArea = document.getElementById('target-selection-area');
+
+                if (targetNames.length > 0) {
+                    hasTargetAnswers = true;
+                    let selectHtml = `<select id="select-target" class="w-full p-3 border border-gray-300 rounded bg-white focus:ring-red-500 focus:border-red-500 font-bold text-gray-700">`;
+                    targetNames.forEach(name => {
+                        selectHtml += `<option value="${name}">${name} さんの回答データを使用</option>`;
+                    });
+                    selectHtml += `</select>`;
+                    targetArea.innerHTML = selectHtml;
+                } else {
+                    hasTargetAnswers = false;
+                    targetArea.innerHTML = `
+                        <div class="bg-yellow-50 p-3 rounded border border-yellow-200 text-yellow-800 text-sm flex items-start gap-2">
+                            <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            <div>事前回答データがありません。<br>開始時に名前を入力する「ぶっつけ本番形式」になります。</div>
+                        </div>
+                    `;
+                }
+
+                // 招待URLとQRコードの生成
+                generateInvites();
+
+                // プレイヤー参加人数のリアルタイム監視
+                const playersRef = collection(db, "projects", projectId, "players");
+                onSnapshot(playersRef, (snapshot) => {
+                    document.getElementById('player-count').textContent = snapshot.size;
+                });
+
+                hideLoading();
+                document.getElementById('main-container').classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Error setting up game:", error);
+                alert("データの取得に失敗しました。");
+                hideLoading();
+            }
+        });
+
+        // 招待情報の生成
+        function generateInvites() {
+            const baseUrl = window.location.href.split('game_setup.html')[0];
+            const playerUrl = `${baseUrl}player.html?id=${projectId}`;
+            const scorerUrl = `${baseUrl}scorer.html?id=${projectId}`;
+
+            // QRコード生成（100x100）
+            new QRCode(document.getElementById("qrcode-player"), {
+                text: playerUrl, width: 100, height: 100, colorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.L
+            });
+            new QRCode(document.getElementById("qrcode-scorer"), {
+                text: scorerUrl, width: 100, height: 100, colorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.L
+            });
+
+            // コピーボタン
+            document.getElementById('btn-copy-player').addEventListener('click', (e) => {
+                e.preventDefault();
+                copyToClipboard(playerUrl, "プレイヤー用URLをコピーしました！");
+            });
+            document.getElementById('btn-copy-scorer').addEventListener('click', (e) => {
+                e.preventDefault();
+                copyToClipboard(scorerUrl, "採点者用URLをコピーしました！");
+            });
+        }
+
+        // ゲーム開始フロー
+        document.getElementById('start-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const playCount = parseInt(document.getElementById('input-play-count').value, 10);
+            
+            if (playCount <= 0 || playCount > availableQuestionsCount) {
+                alert(`プレイ設問数は1〜${availableQuestionsCount}の間で設定してください。`);
+                return;
+            }
+
+            if (!hasTargetAnswers) {
+                // ぶっつけ本番モーダル表示
+                document.getElementById('input-adlib-name').value = '';
+                document.getElementById('adlib-modal').classList.remove('hidden');
+            } else {
+                // 通常開始
+                const targetName = document.getElementById('select-target').value;
+                startGameProcess(targetName);
+            }
+        });
+
+        // ぶっつけ本番モーダルのボタン
+        document.getElementById('btn-cancel-adlib').addEventListener('click', () => {
+            document.getElementById('adlib-modal').classList.add('hidden');
+        });
+
+        document.getElementById('btn-confirm-adlib').addEventListener('click', () => {
+            const nameInput = document.getElementById('input-adlib-name').value.trim();
+            if (!nameInput) {
+                alert("〇〇王の名前を入力してください。");
+                return;
+            }
+            document.getElementById('adlib-modal').classList.add('hidden');
+            startGameProcess(nameInput);
+        });
+
+        // 最終的なゲーム開始処理
+        async function startGameProcess(targetName) {
+            showLoading("ゲーム画面を準備中...");
+
+            const basePoint = parseInt(document.getElementById('input-base-point').value, 10) || 10;
+            const stepPoint = parseInt(document.getElementById('input-step-point').value, 10) || 1;
+            const playCount = parseInt(document.getElementById('input-play-count').value, 10) || 5;
+
+            try {
+                // 出題する問題を抽出・シャッフル
+                // 第1問（名前）は除外し、残りの問題から playCount 件をランダム抽出
+                const allQuestions = projectData.questions || [];
+                const pool = allQuestions.slice(1);
+                
+                // シャッフル
+                pool.sort(() => 0.5 - Math.random());
+                
+                // 抽出（プレイする問題文の配列）
+                const selectedQuestions = pool.slice(0, playCount);
+
+                const projectRef = doc(db, "projects", projectId);
+                
+                // Firebaseのゲームステートを更新（開始状態に移行）
+                await updateDoc(projectRef, {
+                    "game_state.phase": "title",
+                    "game_state.current_question_index": 0,
+                    "game_state.selected_target": targetName,
+                    "game_state.game_settings": {
+                        point_base: basePoint,
+                        point_step: stepPoint,
+                        max_questions: playCount
+                    },
+                    "game_state.play_questions": selectedQuestions // ゲーム画面で使う問題リストを確定
+                });
+
+                // ゲーム画面（プロジェクター用）へ遷移
+                window.location.href = `game_display.html?id=${projectId}`;
+
+            } catch (error) {
+                console.error("Error starting game:", error);
+                alert("ゲームの開始に失敗しました。");
+                hideLoading();
+            }
+        }
+    </script>
+</body>
+</html>
