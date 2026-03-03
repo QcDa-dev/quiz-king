@@ -47,7 +47,7 @@
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <label class="font-bold text-gray-800 block">トータルの設問数</label>
-                            <span class="text-xs text-gray-500">※名前を聞く問題1問を含みます。(10〜100問)</span>
+                            <span class="text-xs text-gray-500">※名前を聞く問題は含まれません。(10〜100問)</span>
                         </div>
                         <div class="flex items-center">
                             <input type="number" id="input-total-questions" value="20" min="10" max="100" class="w-24 p-2 text-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none font-bold text-lg">
@@ -248,7 +248,8 @@
                     return;
                 }
                 
-                const neededFromDB = totalQuestions - originalInputs.length - 1; // -1 は名前入力用
+                // 名前を聞く問題を含めないため -1 を削除
+                const neededFromDB = totalQuestions - originalInputs.length; 
                 
                 if (neededFromDB < 0) {
                     alert(`オリジナル設問が多すぎます。\nトータルの設問数(${totalQuestions}問)の範囲内に収めてください。`);
