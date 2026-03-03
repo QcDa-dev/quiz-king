@@ -149,6 +149,9 @@
         let playersData = {};
         let currentAnswersData = {};
 
+        // 今回の問題での獲得ポイントを管理するオブジェクト { playerId: score }
+        let currentRoundScores = {};
+
         document.addEventListener('DOMContentLoaded', () => {
             initCommonUI();
             showLoading("ゲームデータを読み込み中...");
@@ -513,7 +516,6 @@
                 advancePhase('result');
             }
         });
-
     </script>
 </body>
 </html>
