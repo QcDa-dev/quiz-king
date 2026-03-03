@@ -8,13 +8,13 @@
     <link rel="stylesheet" href="common.css">
     <style>
         /* プロジェクター用特化スタイル */
-        body { background-color: #f3f4f6; overflow-x: hidden; }
+        body { background-color: #f3f4f6; overflow-x: hidden; padding-bottom: 80px; }
         .phase-container {
             display: none;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            min-height: calc(100vh - 80px);
             padding: 2rem;
             text-align: center;
             width: 100%;
@@ -126,7 +126,7 @@
     </div>
 
     <!-- Result Phase -->
-    <div id="phase-result" class="phase-container bg-gradient-to-br from-yellow-50 to-yellow-100 py-12 block">
+    <div id="phase-result" class="phase-container bg-gradient-to-br from-yellow-50 to-yellow-100 py-12">
         <div class="w-full max-w-7xl mx-auto text-center">
             <h2 class="text-5xl md:text-7xl font-black text-yellow-600 mb-16 drop-shadow-md">🏆 最終結果発表 🏆</h2>
             
@@ -167,9 +167,29 @@
         </div>
     </div>
 
+    <!-- リモコン・操作パネル (game_display.html用) -->
+    <div class="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 p-3 z-50 flex justify-center items-center gap-4 shadow-[0_-4px_15px_rgba(0,0,0,0.1)]">
+        <div id="display-controls-waiting" class="hidden text-gray-500 font-bold">待機中</div>
+        <div id="display-controls-title" class="hidden">
+            <button id="btn-next-rules" class="btn btn-primary px-8 py-3 text-lg font-bold w-auto">ルール説明へ進む</button>
+        </div>
+        <div id="display-controls-rules" class="hidden">
+            <button id="btn-next-answer" class="btn btn-primary px-8 py-3 text-lg font-bold w-auto">第1問を出題する！</button>
+        </div>
+        <div id="display-controls-answer" class="hidden">
+            <button id="btn-close-answer" class="btn btn-primary px-8 py-3 text-lg font-bold w-auto">回答を締め切って採点へ</button>
+        </div>
+        <div id="display-controls-scoring" class="hidden">
+            <button id="btn-next-question" class="btn btn-primary px-8 py-3 text-lg font-bold w-auto">次の問題へ進む</button>
+        </div>
+        <div id="display-controls-result" class="hidden">
+            <button id="btn-finish-game" class="btn bg-gray-800 text-white hover:bg-gray-900 px-8 py-3 text-lg font-bold w-auto">ゲームを終了してデータをリセット</button>
+        </div>
+    </div>
+
     <script type="module">
-        import { db } from './common.js';
-        import { doc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { db, showLoading, hideLoading } from './common.js';
+        import { doc, updateDoc, collection, onSnapshot, increment, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const urlParams = new URLSearchParams(window.location.search);
         const projectId = urlParams.get('id');
@@ -185,9 +205,13 @@
         let allProjectQuestions = [];
         let targetAnswers = {};
         let targetName = "";
+        let gameSettings = {};
         
         let playersData = {};
         let currentAnswersData = {};
+
+        // 今回の問題での獲得ポイントを管理するオブジェクト { playerId: score }
+        let currentRoundScores = {};
 
         // 1. プロジェクト状態の監視
         onSnapshot(doc(db, "projects", projectId), (docSnap) => {
@@ -202,6 +226,7 @@
             allProjectQuestions = data.questions || [];
             targetAnswers = data.target_answers || {};
             targetName = state.selected_target || "〇〇";
+            gameSettings = state.game_settings || { point_base: 10, point_step: 1, max_questions: 5 };
 
             // フェーズや問題番号が変わった時のみUIを大きく更新
             if (currentPhase !== state.phase || currentQuestionIndex !== state.current_question_index) {
@@ -236,6 +261,11 @@
             document.querySelectorAll('.phase-container').forEach(el => el.classList.remove('active'));
             const target = document.getElementById('phase-' + phaseId);
             if(target) target.classList.add('active');
+
+            // コントロールパネルの表示切替
+            document.querySelectorAll('[id^="display-controls-"]').forEach(el => el.classList.add('hidden'));
+            const controls = document.getElementById(`display-controls-${phaseId}`);
+            if(controls) controls.classList.remove('hidden');
         }
 
         function updatePhaseUI(state) {
@@ -259,6 +289,16 @@
                 const qText = playQuestions[currentQuestionIndex] || "";
                 document.getElementById('score-q-num').textContent = currentQuestionIndex + 1;
                 document.getElementById('score-q-text').textContent = qText;
+
+                // 次のフェーズのボタンテキスト設定
+                if (currentQuestionIndex + 1 < gameSettings.max_questions) {
+                    document.getElementById('btn-next-question').textContent = "採点を完了して次の問題へ";
+                    document.getElementById('btn-next-question').classList.replace('bg-yellow-500', 'btn-primary');
+                } else {
+                    document.getElementById('btn-next-question').textContent = "採点を完了して結果発表へ！";
+                    document.getElementById('btn-next-question').classList.replace('btn-primary', 'bg-yellow-500');
+                    document.getElementById('btn-next-question').classList.add('hover:bg-yellow-600', 'text-white');
+                }
                 
                 // 正解の特定
                 let correctAnswer = "🎙 本人に聞いてみましょう！";
@@ -277,20 +317,11 @@
             }
         }
 
-        // 回答送信数の更新
-        function updateAnswerCountUI() {
-            const totalPlayers = Object.keys(playersData).length;
-            let submittedCount = 0;
-            
-            // 現在の問題番号に対して回答している人をカウント
-            Object.values(currentAnswersData).forEach(ansData => {
-                if (ansData.question_index === currentQuestionIndex && ansData.answer && ansData.answer.trim().length > 0) {
-                    submittedCount++;
-                }
+        // 全角数字を半角に変換
+        function toHalfWidth(str) {
+            return str.replace(/[０-９]/g, function(s) {
+                return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
             });
-
-            document.getElementById('answer-total-players').textContent = totalPlayers;
-            document.getElementById('answer-submit-count').textContent = submittedCount;
         }
 
         // 採点画面の回答一覧グリッド更新
@@ -313,6 +344,8 @@
                     ansClass = "text-gray-800 font-bold";
                 }
 
+                const currentVal = currentRoundScores[playerId] || 0;
+
                 const card = document.createElement('div');
                 card.className = "answer-card";
                 card.innerHTML = `
@@ -320,12 +353,65 @@
                         <div class="font-bold text-gray-700 text-lg truncate pr-2">${pName}</div>
                         <div class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-sm font-bold">${pScore}pt</div>
                     </div>
-                    <div class="flex-grow flex items-center justify-center p-2 text-center">
+                    <div class="flex-grow flex items-center justify-center p-2 text-center mb-4">
                         <span class="text-2xl ${ansClass} break-all">${pAnswer}</span>
                     </div>
+                    
+                    <div class="flex flex-wrap items-center justify-between gap-2 bg-red-50 p-2 rounded border border-red-100 w-full mt-auto">
+                        <button class="btn-correct bg-white border border-gray-300 text-gray-800 font-bold py-1 px-3 rounded shadow-sm hover:bg-gray-100 text-sm whitespace-nowrap">
+                            +${gameSettings.point_base} (正解)
+                        </button>
+                        <div class="flex items-center gap-1">
+                            <button class="btn-minus bg-white border border-gray-300 text-gray-700 font-bold w-8 h-8 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-lg">-</button>
+                            <input type="text" class="score-input w-12 h-8 border border-gray-300 rounded text-center font-bold focus:outline-none focus:border-red-500" data-id="${playerId}" value="${currentVal}">
+                            <button class="btn-plus bg-white border border-gray-300 text-gray-700 font-bold w-8 h-8 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-lg">+</button>
+                        </div>
+                    </div>
                 `;
+
+                // ボタンイベント
+                const btnCorrect = card.querySelector('.btn-correct');
+                const btnMinus = card.querySelector('.btn-minus');
+                const btnPlus = card.querySelector('.btn-plus');
+                const input = card.querySelector('.score-input');
+
+                btnCorrect.addEventListener('click', () => adjustScore(playerId, gameSettings.point_base));
+                btnMinus.addEventListener('click', () => adjustScore(playerId, -gameSettings.point_step));
+                btnPlus.addEventListener('click', () => adjustScore(playerId, gameSettings.point_step));
+
+                input.addEventListener('change', (e) => {
+                    let val = toHalfWidth(e.target.value);
+                    let num = parseInt(val, 10);
+                    if (isNaN(num)) num = 0;
+                    e.target.value = num;
+                    updatePlayerScore(playerId, num);
+                });
+
                 container.appendChild(card);
             });
+        }
+
+        // 得点調整ロジック（ローカルステートとFirestoreの同期）
+        function adjustScore(playerId, amount) {
+            const currentVal = currentRoundScores[playerId] || 0;
+            const newVal = currentVal + amount;
+            updatePlayerScore(playerId, newVal);
+        }
+
+        function updatePlayerScore(playerId, newValue) {
+            const oldValue = currentRoundScores[playerId] || 0;
+            const diff = newValue - oldValue;
+            currentRoundScores[playerId] = newValue;
+            
+            // UI反映
+            const input = document.querySelector(`.score-input[data-id="${playerId}"]`);
+            if (input) input.value = newValue;
+
+            // Firestore更新 (差分を加算)
+            if (diff !== 0) {
+                const ref = doc(db, "projects", projectId, "players", playerId);
+                updateDoc(ref, { total_score: increment(diff) }).catch(e => console.error(e));
+            }
         }
 
         // 最終結果ランキングの更新
@@ -373,6 +459,92 @@
                 listContainer.innerHTML = '<p class="text-gray-400 text-center py-4">4位以下のプレイヤーはいません</p>';
             }
         }
+
+        // --- フェーズ移行処理 ---
+        async function advancePhase(newPhase, newIndex = null) {
+            const updates = { "game_state.phase": newPhase };
+            if (newIndex !== null) {
+                updates["game_state.current_question_index"] = newIndex;
+            }
+            
+            showLoading("画面を切り替えています...");
+            try {
+                await updateDoc(doc(db, "projects", projectId), updates);
+            } catch (e) {
+                console.error(e);
+                alert("通信エラーが発生しました。");
+            }
+            hideLoading();
+        }
+
+        // 各ボタンのアクション
+        document.getElementById('btn-next-rules').addEventListener('click', () => advancePhase('rules'));
+        
+        document.getElementById('btn-next-answer').addEventListener('click', () => advancePhase('answer', 0));
+
+        document.getElementById('btn-close-answer').addEventListener('click', () => {
+            const totalPlayers = Object.keys(playersData).length;
+            let submittedCount = parseInt(document.getElementById('answer-submit-count').textContent, 10) || 0;
+
+            if (submittedCount < totalPlayers) {
+                if (!confirm(`まだ回答していないプレイヤーが ${totalPlayers - submittedCount} 人います。\n締め切って採点に進みますか？`)) {
+                    return;
+                }
+            }
+            
+            // 採点フェーズに入る前に今回の得点ステートをリセット
+            currentRoundScores = {};
+            Object.keys(playersData).forEach(id => { currentRoundScores[id] = 0; });
+            
+            advancePhase('scoring');
+        });
+
+        document.getElementById('btn-next-question').addEventListener('click', () => {
+            if (currentQuestionIndex + 1 < gameSettings.max_questions) {
+                advancePhase('answer', currentQuestionIndex + 1);
+            } else {
+                advancePhase('result');
+            }
+        });
+
+        // ゲーム初期化処理
+        document.getElementById('btn-finish-game').addEventListener('click', async () => {
+            if (!confirm("ゲームを終了し、すべての参加者のスコアと回答データを削除しますか？\n（※問題データは残ります）")) {
+                return;
+            }
+
+            showLoading("データをリセットしています...");
+            try {
+                // 1. プレイヤー削除
+                const playersRef = collection(db, "projects", projectId, "players");
+                const pSnap = await getDocs(playersRef);
+                const pPromises = pSnap.docs.map(d => deleteDoc(d.ref));
+                
+                // 2. 回答削除
+                const ansRef = collection(db, "projects", projectId, "current_answers");
+                const aSnap = await getDocs(ansRef);
+                const aPromises = aSnap.docs.map(d => deleteDoc(d.ref));
+
+                await Promise.all([...pPromises, ...aPromises]);
+
+                // 3. ステート初期化
+                await updateDoc(doc(db, "projects", projectId), {
+                    "game_state.phase": "waiting",
+                    "game_state.current_question_index": 0
+                });
+
+                hideLoading();
+                alert("リセットが完了しました。");
+                // セットアップ画面に戻る
+                window.location.href = `game_setup.html?id=${projectId}`;
+
+            } catch (e) {
+                console.error(e);
+                alert("リセットに失敗しました。");
+                hideLoading();
+            }
+        });
+
     </script>
 </body>
 </html>
