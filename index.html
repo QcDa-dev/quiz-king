@@ -7,24 +7,85 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="common.css">
 </head>
-<body>
+<body class="bg-gray-50">
     <!-- 共通ヘッダー -->
     <header id="header-container"></header>
 
-    <main class="p-4 sm:p-6 max-w-2xl mx-auto w-full">
-        <!-- アプリ説明セクション -->
-        <div class="card text-center fade-in">
-            <h1 class="text-3xl font-black text-red-500 mb-4 tracking-wider">みんなで<br>〇〇王！</h1>
-            <p class="text-gray-600 leading-relaxed mb-6 text-sm sm:text-base">
-                主役（〇〇王）の過去の面白エピソードや、マニアックな好みをクイズにして、みんなで誰が一番理解しているかを競うアプリです！<br><br>
-                幹事や主催者も、このシステムを使えば解答を知らずにプレイヤーとして一緒に参加して楽しむことができます。
-            </p>
-            <button id="btn-open-create-modal" class="btn btn-primary text-lg py-4">新しく「〇〇王」を作る！</button>
+    <main class="p-4 sm:p-6 max-w-3xl mx-auto w-full">
+        <!-- アプリ説明セクション（LP風にリッチ化） -->
+        <div class="card text-center fade-in border-t-8 border-red-500 shadow-xl overflow-hidden relative !p-6 sm:!p-10">
+            <!-- 装飾的な背景要素 -->
+            <div class="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-red-50 to-transparent -z-10"></div>
+            
+            <h1 class="text-4xl sm:text-6xl font-black text-red-600 mb-3 tracking-wider drop-shadow-sm mt-2">みんなで<br>〇〇王！</h1>
+            <p class="text-lg sm:text-xl font-bold text-gray-700 mb-8 tracking-wide">〜 主役が一番喜ぶ、究極の内輪クイズ大会 〜</p>
+            
+            <!-- 〇〇王とは？ -->
+            <div class="text-gray-600 leading-relaxed mb-10 text-sm sm:text-base text-left bg-white p-6 rounded-2xl border border-gray-200 shadow-sm relative">
+                <div class="absolute -top-3 left-6 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">「〇〇王」とは？</div>
+                <span class="block mt-2">
+                主役（〇〇王）の過去の面白エピソード、独特なこだわり、マニアックな好みをクイズにして、<strong class="text-gray-800 text-lg">「誰が一番主役を理解しているか」</strong>を競うパーティーゲームです！<br><br>
+                誕生日会、結婚式の二次会、送別会や忘年会など、仲間内でのイベントが<strong class="text-red-500 font-bold">爆笑の渦</strong>に包まれること間違いなし！
+                </span>
+            </div>
+
+            <!-- 3つの特徴 -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center hover:shadow-md transition-shadow">
+                    <div class="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mb-3">
+                        <span class="text-2xl">📱</span>
+                    </div>
+                    <h3 class="font-bold text-gray-800 mb-2">準備はURLを送るだけ</h3>
+                    <p class="text-xs text-gray-500 leading-relaxed">主役への事前アンケートから当日の回答システムまで、すべてスマホ1つで完結！</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center hover:shadow-md transition-shadow">
+                    <div class="w-14 h-14 bg-yellow-100 rounded-full flex items-center justify-center mb-3">
+                        <span class="text-2xl">🤫</span>
+                    </div>
+                    <h3 class="font-bold text-gray-800 mb-2">主催者も本気で遊べる</h3>
+                    <p class="text-xs text-gray-500 leading-relaxed">正解を見ずに進行できるシステム搭載。幹事もプレイヤーとしてガチ参戦！</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center hover:shadow-md transition-shadow">
+                    <div class="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mb-3">
+                        <span class="text-2xl">📺</span>
+                    </div>
+                    <h3 class="font-bold text-gray-800 mb-2">本格的なTV番組風</h3>
+                    <p class="text-xs text-gray-500 leading-relaxed">大画面に映せば、みんなのスマホが回答席＆採点リモコンに早変わり！</p>
+                </div>
+            </div>
+
+            <!-- 使い方ステップ -->
+            <div class="text-left mb-10 bg-red-50 p-6 rounded-2xl border border-red-100 relative overflow-hidden">
+                <h3 class="font-black text-red-600 mb-5 text-center text-lg">💡 遊ぶまでの3ステップ</h3>
+                <div class="space-y-4 relative z-10">
+                    <div class="flex items-start gap-3 bg-white p-3 rounded-xl shadow-sm border border-red-50">
+                        <div class="bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center font-bold flex-shrink-0">1</div>
+                        <p class="text-sm text-gray-700 font-bold pt-1">この画面からプロジェクトを作成し、主役に事前回答URLを送る！</p>
+                    </div>
+                    <div class="flex items-start gap-3 bg-white p-3 rounded-xl shadow-sm border border-red-50">
+                        <div class="bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center font-bold flex-shrink-0">2</div>
+                        <p class="text-sm text-gray-700 font-bold pt-1">当日、大画面にゲーム画面を映して参加者をQRコードで招待！</p>
+                    </div>
+                    <div class="flex items-start gap-3 bg-white p-3 rounded-xl shadow-sm border border-red-50">
+                        <div class="bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center font-bold flex-shrink-0">3</div>
+                        <p class="text-sm text-gray-700 font-bold pt-1">主催者のスマホ（リモコン）で進行しながら、クイズ大会スタート！</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- メインアクションボタン -->
+            <button id="btn-open-create-modal" class="btn btn-primary text-xl sm:text-2xl py-5 shadow-lg flex items-center justify-center gap-2 transform transition-all hover:scale-105 hover:shadow-xl w-full sm:w-4/5 mx-auto">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                新しく「〇〇王」を作る！
+            </button>
         </div>
 
         <!-- プロジェクト履歴セクション -->
         <div class="card fade-in" style="animation-delay: 0.1s;">
-            <h2 class="text-xl font-bold text-gray-800 border-b border-gray-200 pb-2 mb-4">作成したプロジェクト履歴</h2>
+            <div class="flex items-center justify-between border-b border-gray-200 pb-3 mb-4">
+                <h2 class="text-xl font-bold text-gray-800">作成したプロジェクト履歴</h2>
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
             <div id="history-container" class="space-y-3">
                 <p class="text-gray-500 text-center text-sm">作成履歴はありません。</p>
             </div>
@@ -37,9 +98,12 @@
     <!-- プロジェクト作成モーダル -->
     <div id="create-modal" class="modal-overlay hidden">
         <div class="modal-content fade-in">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">プロジェクトを作成</h3>
+            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                プロジェクトを作成
+            </h3>
             <p class="text-sm text-gray-600 mb-4">主役の名前や、イベントのタイトルを入力してください。</p>
-            <input type="text" id="input-project-name" placeholder="例：田中王決定戦！" class="w-full p-3 border border-gray-300 rounded-lg mb-6 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500" maxlength="30">
+            <input type="text" id="input-project-name" placeholder="例：田中王決定戦！" class="w-full p-4 border border-gray-300 rounded-lg mb-6 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200 font-bold text-lg" maxlength="30">
             
             <div class="flex gap-3">
                 <button id="btn-cancel-create" class="btn btn-secondary flex-1">キャンセル</button>
@@ -50,23 +114,23 @@
 
     <!-- URL発行完了モーダル -->
     <div id="success-modal" class="modal-overlay hidden">
-        <div class="modal-content fade-in text-center">
-            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+        <div class="modal-content fade-in text-center !max-w-lg">
+            <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                <svg class="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
             </div>
-            <h3 class="text-xl font-bold text-gray-800 mb-2">プロジェクト作成完了！</h3>
-            <p class="text-sm text-gray-600 mb-4">管理画面のURLが発行されました。<br>このURLは必ずメモして保管してください。</p>
+            <h3 class="text-2xl font-black text-gray-800 mb-2">プロジェクト作成完了！</h3>
+            <p class="text-sm text-gray-600 mb-6">管理画面のURLが発行されました。<br>このURLは必ずメモして保管してください。</p>
             
-            <div class="bg-gray-100 p-3 rounded-lg mb-4 text-left break-all">
-                <span id="display-admin-url" class="text-sm text-blue-600 font-mono"></span>
+            <div class="bg-gray-50 p-4 rounded-xl mb-6 text-left break-all border border-gray-200 shadow-inner">
+                <span id="display-admin-url" class="text-sm text-blue-600 font-mono font-bold"></span>
             </div>
             
-            <button id="btn-copy-url" class="btn btn-secondary mb-4 flex items-center justify-center gap-2">
+            <button id="btn-copy-url" class="btn btn-secondary mb-4 flex items-center justify-center gap-2 w-full py-3">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
                 URLをコピー
             </button>
             
-            <button id="btn-go-admin" class="btn btn-primary">管理画面へ進む</button>
+            <button id="btn-go-admin" class="btn btn-primary text-lg py-4 w-full">管理画面へ進む</button>
         </div>
     </div>
 
@@ -135,7 +199,7 @@
                         questions: [],
                         target_answers: {},
                         game_state: {
-                            phase: "waiting", // waiting, title, rules, answer, scoring, result
+                            phase: "waiting", // waiting, title, rules, answer, scoring, mid_result, result
                             current_question_index: 0,
                             selected_target: "",
                             game_settings: {
@@ -212,13 +276,15 @@
                 const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth()+1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}`;
                 
                 const itemDiv = document.createElement('div');
-                itemDiv.className = 'flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100 hover:bg-red-50 transition-colors cursor-pointer';
+                itemDiv.className = 'flex justify-between items-center p-4 bg-white rounded-xl border border-gray-200 hover:border-red-300 hover:shadow-md transition-all cursor-pointer mb-3';
                 itemDiv.innerHTML = `
                     <div class="truncate pr-4">
-                        <div class="font-bold text-gray-800 truncate">${item.name}</div>
-                        <div class="text-xs text-gray-400">作成日: ${dateStr}</div>
+                        <div class="font-bold text-gray-800 truncate text-lg">${item.name}</div>
+                        <div class="text-xs text-gray-500 mt-1">作成日: ${dateStr}</div>
                     </div>
-                    <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    <div class="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </div>
                 `;
                 
                 // 行クリックで管理画面へ遷移
