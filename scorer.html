@@ -105,6 +105,16 @@
             </div>
         </div>
 
+        <!-- Mid Result Panel (新規追加) -->
+        <div id="panel-mid_result" class="control-panel hidden fade-in max-w-2xl mx-auto">
+            <div class="card border-t-4 border-blue-400 text-center mb-6">
+                <h3 class="font-bold text-blue-600 mb-4">📊 中間発表 📊</h3>
+                <div id="mid-result-ranking" class="rounded-lg overflow-hidden border border-gray-200 mb-8">
+                    <!-- ランキング生成 -->
+                </div>
+            </div>
+        </div>
+
         <!-- Result Panel -->
         <div id="panel-result" class="control-panel hidden fade-in max-w-2xl mx-auto">
             <div class="card border-t-4 border-yellow-400 text-center mb-6">
@@ -125,6 +135,7 @@
     <div id="scoring-fixed-btn-area" class="fixed bottom-0 left-0 w-full bg-white p-4 shadow-[0_-4px_15px_rgba(0,0,0,0.1)] z-50 hidden">
         <div class="max-w-4xl mx-auto flex justify-center">
             <button id="btn-next-question" class="btn btn-primary text-lg sm:text-xl py-4 shadow-md w-full max-w-md">次の問題へ進む</button>
+            <button id="btn-next-from-mid" class="btn bg-blue-500 hover:bg-blue-600 text-white text-lg sm:text-xl py-4 shadow-md w-full max-w-md font-bold hidden">後半戦（次の問題）へ進む</button>
         </div>
     </div>
 
@@ -190,7 +201,8 @@
                 
                 if (currentPhase === 'answer') updateAnswerCount();
                 if (currentPhase === 'scoring') renderScoringList();
-                if (currentPhase === 'result') renderResultRanking();
+                if (currentPhase === 'mid_result') renderResultRanking('mid-result-ranking');
+                if (currentPhase === 'result') renderResultRanking('result-ranking');
             });
 
             // 3. 回答データの監視
@@ -255,23 +267,36 @@
             else if (currentPhase === 'scoring') {
                 statusText.textContent = `第${currentQuestionIndex + 1}問: 採点中`;
                 document.getElementById('scoring-fixed-btn-area').classList.remove('hidden');
+                document.getElementById('btn-next-question').classList.remove('hidden');
+                document.getElementById('btn-next-from-mid').classList.add('hidden');
                 
+                const midPoint = Math.floor(gameSettings.max_questions / 2);
+
                 // 次のフェーズのボタンテキスト設定
-                if (currentQuestionIndex + 1 < gameSettings.max_questions) {
+                if (currentQuestionIndex + 1 === midPoint) {
+                    document.getElementById('btn-next-question').textContent = "採点を完了して中間発表へ！";
+                    document.getElementById('btn-next-question').className = "btn bg-blue-500 hover:bg-blue-600 text-white text-lg sm:text-xl py-4 shadow-md w-full max-w-md font-bold";
+                } else if (currentQuestionIndex + 1 < gameSettings.max_questions) {
                     document.getElementById('btn-next-question').textContent = "採点を完了して次の問題へ";
-                    document.getElementById('btn-next-question').classList.replace('bg-yellow-500', 'btn-primary');
+                    document.getElementById('btn-next-question').className = "btn btn-primary text-lg sm:text-xl py-4 shadow-md w-full max-w-md";
                 } else {
                     document.getElementById('btn-next-question').textContent = "採点を完了して結果発表へ！";
-                    document.getElementById('btn-next-question').classList.replace('btn-primary', 'bg-yellow-500');
-                    document.getElementById('btn-next-question').classList.add('hover:bg-yellow-600', 'text-white');
+                    document.getElementById('btn-next-question').className = "btn bg-yellow-500 hover:bg-yellow-600 text-white text-lg sm:text-xl py-4 shadow-md w-full max-w-md font-bold";
                 }
 
                 renderScoringList();
             }
+            else if (currentPhase === 'mid_result') {
+                statusText.textContent = "中間発表";
+                document.getElementById('scoring-fixed-btn-area').classList.remove('hidden');
+                document.getElementById('btn-next-question').classList.add('hidden');
+                document.getElementById('btn-next-from-mid').classList.remove('hidden');
+                renderResultRanking('mid-result-ranking');
+            }
             else if (currentPhase === 'result') {
                 statusText.textContent = "結果発表";
                 document.getElementById('scoring-fixed-btn-area').classList.add('hidden');
-                renderResultRanking();
+                renderResultRanking('result-ranking');
             }
         }
 
@@ -432,31 +457,7 @@
             }
         }
 
-        async function updatePlayerScoreDirectly(playerId, newValue) {
-            const currentVal = playersData[playerId].current_score || 0;
-            const diff = newValue - currentVal; // 直接入力時の差分を計算
-            
-            // ローカル状態を即時反映（ラグ対策）
-            playersData[playerId].current_score = newValue;
-            playersData[playerId].total_score = (playersData[playerId].total_score || 0) + diff;
-            
-            const input = document.querySelector(`.score-input[data-id="${playerId}"]`);
-            if (input) input.value = newValue;
-
-            if (diff !== 0) {
-                try {
-                    const ref = doc(db, "projects", projectId, "players", playerId);
-                    await updateDoc(ref, { 
-                        total_score: increment(diff),
-                        current_score: increment(diff)
-                    });
-                } catch (e) {
-                    console.error(e);
-                }
-            }
-        }
-
-        function renderResultRanking() {
+        function renderResultRanking(containerId) {
             const sortedPlayers = Object.keys(playersData).map(id => ({
                 name: playersData[id].name,
                 score: playersData[id].total_score || 0
@@ -465,7 +466,8 @@
                 return a.name.localeCompare(b.name);
             });
 
-            const container = document.getElementById('result-ranking');
+            const container = document.getElementById(containerId || 'result-ranking');
+            if (!container) return;
             container.innerHTML = '';
             
             sortedPlayers.forEach((p, idx) => {
@@ -532,11 +534,18 @@
         });
 
         document.getElementById('btn-next-question').addEventListener('click', () => {
-            if (currentQuestionIndex + 1 < gameSettings.max_questions) {
+            const midPoint = Math.floor(gameSettings.max_questions / 2);
+            if (currentQuestionIndex + 1 === midPoint) {
+                advancePhase('mid_result');
+            } else if (currentQuestionIndex + 1 < gameSettings.max_questions) {
                 advancePhase('answer', currentQuestionIndex + 1);
             } else {
                 advancePhase('result');
             }
+        });
+
+        document.getElementById('btn-next-from-mid').addEventListener('click', () => {
+            advancePhase('answer', currentQuestionIndex + 1);
         });
     </script>
 </body>
