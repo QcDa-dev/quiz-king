@@ -58,7 +58,7 @@
                 
                 <h2 id="answer-q-text" class="text-xl sm:text-2xl font-black text-gray-800 mb-6 leading-relaxed">問題文</h2>
                 
-                <!-- 【追加】回答フェーズ中の王の正解確認エリア -->
+                <!-- 回答フェーズ中の王の正解確認エリア -->
                 <div class="bg-red-50 border border-red-100 p-4 rounded-xl mb-6 text-left">
                     <p class="text-xs font-bold text-red-500 mb-1">👑 <span class="target-name-disp">〇〇</span> 王の正解</p>
                     <p id="answer-correct-preview" class="text-lg font-black text-gray-800">（未回答）</p>
@@ -120,7 +120,7 @@
 
     </main>
 
-    <!-- 【修正】フェーズアニメーションの外に出して確実に画面下部に固定 -->
+    <!-- フェーズアニメーションの外に出して確実に画面下部に固定 -->
     <div id="scoring-fixed-btn-area" class="fixed bottom-0 left-0 w-full bg-white p-4 shadow-[0_-4px_15px_rgba(0,0,0,0.1)] z-50 hidden">
         <div class="max-w-4xl mx-auto flex justify-center">
             <button id="btn-next-question" class="btn btn-primary text-lg sm:text-xl py-4 shadow-md w-full max-w-md">次の問題へ進む</button>
@@ -244,6 +244,10 @@
                 document.getElementById('scoring-fixed-btn-area').classList.add('hidden');
 
                 // 王の正解を取得して表示
+                let correctAnswer = "（本人に聞いてみましょう！）";
+                const origIdx = allProjectQuestions.indexOf(qText);
+                if (origIdx !== -1 && targetAnswers[targetName] && targetAnswers[targetName][origIdx] !== undefined) {
+                    correctAnswer = targetAnswers[targetName][origIdx];
                     if (correctAnswer.trim() === "") correctAnswer = "（未回答）";
                 }
                 document.getElementById('answer-correct-preview').textContent = correctAnswer;
