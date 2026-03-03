@@ -366,15 +366,18 @@
                     ansClass = "text-gray-800 font-bold";
                 }
 
+                const currentVal = currentRoundScores[playerId] || 0;
+
                 let card = document.getElementById(`display-card-${playerId}`);
                 if (!card) {
                     card = document.createElement('div');
                     card.id = `display-card-${playerId}`;
                     card.setAttribute('data-player-id', playerId);
-                    card.className = "answer-card flex flex-col h-full";
+                    card.className = "answer-card flex flex-col h-full bg-white rounded-xl p-4 shadow-sm border-t-4 border-red-500";
                     card.innerHTML = `
                         <div class="flex justify-between items-center mb-3 border-b border-gray-100 pb-2">
                             <div class="font-bold text-gray-700 text-lg truncate w-full player-name-text">${pName}</div>
+                            <div class="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded player-total-score ml-2 whitespace-nowrap">累計: ${pScore}pt</div>
                         </div>
                         <div class="flex-grow flex items-center justify-center p-2 text-center mb-4">
                             <span class="text-2xl ${ansClass} break-all player-answer-text">${pAnswer}</span>
@@ -386,11 +389,11 @@
                             </button>
                             
                             <div class="flex items-center justify-between gap-1 w-full mt-1">
-                                <span class="text-xs font-bold text-gray-600">累計</span>
+                                <span class="text-xs font-bold text-gray-600">今回の<br>得点</span>
                                 <div class="flex items-center gap-1">
-                                    <button class="btn-minus bg-white border border-gray-300 text-gray-700 font-bold w-10 h-10 sm:w-12 sm:h-12 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-xl sm:text-2xl">-</button>
-                                    <input type="text" class="score-input w-16 h-10 sm:w-20 sm:h-12 border border-gray-300 rounded text-center font-bold text-lg sm:text-xl focus:outline-none focus:border-red-500" data-id="${playerId}" value="${pScore}">
-                                    <button class="btn-plus bg-white border border-gray-300 text-gray-700 font-bold w-10 h-10 sm:w-12 sm:h-12 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-xl sm:text-2xl">+</button>
+                                    <button class="btn-minus bg-white border border-gray-300 text-gray-700 font-bold w-10 h-10 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-xl">-</button>
+                                    <input type="text" class="score-input w-16 h-10 border border-gray-300 rounded text-center font-bold text-lg focus:outline-none focus:border-red-500" data-id="${playerId}" value="${currentVal}">
+                                    <button class="btn-plus bg-white border border-gray-300 text-gray-700 font-bold w-10 h-10 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-xl">+</button>
                                 </div>
                             </div>
                         </div>
@@ -418,6 +421,7 @@
                 } else {
                     // 既存カードの更新
                     card.querySelector('.player-name-text').textContent = pName;
+                    card.querySelector('.player-total-score').textContent = `累計: ${pScore}pt`;
                     const answerDiv = card.querySelector('.player-answer-text');
                     answerDiv.className = `text-2xl ${ansClass} break-all player-answer-text`;
                     answerDiv.textContent = pAnswer;
@@ -427,37 +431,47 @@
 
                     const input = card.querySelector('.score-input');
                     if (document.activeElement !== input) {
-                        input.value = pScore; // 常に最新の累積点数を表示
+                        input.value = currentVal;
                     }
                 }
             });
         }
 
-        // 得点調整ロジック（ローカルステートとFirestoreの同期：累積）
+        // 得点調整ロジック（ローカルで今回の得点を持ち、Firestoreには累計の差分を積算する）
         async function adjustScore(playerId, amount) {
-            const currentVal = playersData[playerId].total_score || 0;
+            const currentVal = currentRoundScores[playerId] || 0;
             const newVal = currentVal + amount;
+            const diff = amount;
             
-            playersData[playerId].total_score = newVal;
+            currentRoundScores[playerId] = newVal;
             
             const input = document.querySelector(`.score-input[data-id="${playerId}"]`);
             if (input) input.value = newVal;
 
             try {
                 const ref = doc(db, "projects", projectId, "players", playerId);
-                await updateDoc(ref, { total_score: newVal });
+                await updateDoc(ref, { total_score: increment(diff) });
             } catch (e) {
                 console.error(e);
             }
         }
 
         async function updatePlayerScoreDirectly(playerId, newValue) {
-            playersData[playerId].total_score = newValue;
-            try {
-                const ref = doc(db, "projects", projectId, "players", playerId);
-                await updateDoc(ref, { total_score: newValue });
-            } catch (e) {
-                console.error(e);
+            const currentVal = currentRoundScores[playerId] || 0;
+            const diff = newValue - currentVal;
+            
+            currentRoundScores[playerId] = newValue;
+            
+            const input = document.querySelector(`.score-input[data-id="${playerId}"]`);
+            if (input) input.value = newValue;
+
+            if (diff !== 0) {
+                try {
+                    const ref = doc(db, "projects", projectId, "players", playerId);
+                    await updateDoc(ref, { total_score: increment(diff) });
+                } catch (e) {
+                    console.error(e);
+                }
             }
         }
 
@@ -538,6 +552,10 @@
                     return;
                 }
             }
+            
+            // 採点フェーズに入る前に「今回の得点」をリセットする
+            currentRoundScores = {};
+            Object.keys(playersData).forEach(id => { currentRoundScores[id] = 0; });
             
             advancePhase('scoring');
         });
