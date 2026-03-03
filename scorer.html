@@ -58,6 +58,12 @@
                 
                 <h2 id="answer-q-text" class="text-xl sm:text-2xl font-black text-gray-800 mb-6 leading-relaxed">問題文</h2>
                 
+                <!-- 【追加】回答フェーズ中の王の正解確認エリア -->
+                <div class="bg-red-50 border border-red-100 p-4 rounded-xl mb-6 text-left">
+                    <p class="text-xs font-bold text-red-500 mb-1">👑 <span class="target-name-disp">〇〇</span> 王の正解</p>
+                    <p id="answer-correct-preview" class="text-lg font-black text-gray-800">（未回答）</p>
+                </div>
+                
                 <div class="bg-blue-50 border border-blue-100 p-4 rounded-xl text-center mb-8">
                     <p class="text-sm font-bold text-blue-800 mb-1">現在の回答状況</p>
                     <div class="text-3xl font-black text-blue-600"><span id="answer-submit-count">0</span> <span class="text-lg text-blue-400">/ <span id="answer-total-players">0</span> 人</span></div>
@@ -180,6 +186,7 @@
                 snap.forEach(doc => { playersData[doc.id] = doc.data(); });
                 
                 if (currentPhase === 'answer') updateAnswerCount();
+                if (currentPhase === 'scoring') renderScoringList();
                 if (currentPhase === 'result') renderResultRanking();
             });
 
@@ -189,6 +196,7 @@
                 snap.forEach(doc => { currentAnswersData[doc.id] = doc.data(); });
                 
                 if (currentPhase === 'answer') updateAnswerCount();
+                if (currentPhase === 'scoring') renderScoringList();
             });
         });
 
@@ -223,7 +231,18 @@
             }
             else if (currentPhase === 'answer') {
                 statusText.textContent = `第${currentQuestionIndex + 1}問: 回答受付中`;
-                document.getElementById('answer-q-text').textContent = playQuestions[currentQuestionIndex] || "";
+                const qText = playQuestions[currentQuestionIndex] || "";
+                document.getElementById('answer-q-text').textContent = qText;
+
+                // 【追加】王の正解を取得して表示
+                let correctAnswer = "（本人に聞いてみましょう！）";
+                const origIdx = allProjectQuestions.indexOf(qText);
+                if (origIdx !== -1 && targetAnswers[targetName] && targetAnswers[targetName][origIdx] !== undefined) {
+                    correctAnswer = targetAnswers[targetName][origIdx];
+                    if (correctAnswer.trim() === "") correctAnswer = "（未回答）";
+                }
+                document.getElementById('answer-correct-preview').textContent = correctAnswer;
+
                 updateAnswerCount();
             }
             else if (currentPhase === 'scoring') {
@@ -269,7 +288,6 @@
 
         function renderScoringList() {
             const container = document.getElementById('scoring-list');
-            container.innerHTML = '';
             
             const qText = playQuestions[currentQuestionIndex] || "";
             document.getElementById('scoring-q-text').textContent = qText;
@@ -282,7 +300,15 @@
             }
             document.getElementById('scoring-correct').textContent = correctAnswer;
 
-            // 各プレイヤーの採点カードを生成
+            // クリーンアップ（削除されたプレイヤーをUIから消す）
+            Array.from(container.children).forEach(child => {
+                const pid = child.getAttribute('data-player-id');
+                if (!playersData[pid]) {
+                    container.removeChild(child);
+                }
+            });
+
+            // 各プレイヤーの採点カードを生成・更新（差分更新）
             Object.keys(playersData).forEach(playerId => {
                 const pName = playersData[playerId].name;
                 const pTotal = playersData[playerId].total_score || 0;
@@ -297,49 +323,69 @@
 
                 const currentVal = currentRoundScores[playerId] || 0;
 
-                const div = document.createElement('div');
-                div.className = "bg-white p-4 rounded-xl shadow-sm border border-gray-200";
-                div.innerHTML = `
-                    <div class="flex justify-between items-center mb-2">
-                        <div class="font-bold text-gray-800 text-lg">${pName}</div>
-                        <div class="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded">累計: ${pTotal}pt</div>
-                    </div>
-                    <div class="text-base ${isAnswered ? 'text-gray-800 font-bold' : 'text-gray-400'} bg-gray-50 p-3 rounded mb-3 break-all">
-                        ${pAnswer}
-                    </div>
-                    
-                    <div class="flex flex-wrap items-center justify-between gap-2 bg-red-50 p-3 rounded-lg border border-red-100 mt-2">
-                        <button class="btn-correct bg-white border border-gray-300 text-gray-800 font-bold py-2 px-4 rounded shadow-sm hover:bg-gray-100 whitespace-nowrap">
-                            +${gameSettings.point_base} (正解)
-                        </button>
-                        
-                        <div class="flex items-center gap-1">
-                            <button class="btn-minus bg-white border border-gray-300 text-gray-700 font-bold w-10 h-10 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-xl">-</button>
-                            <input type="text" class="score-input w-16 h-10 border border-gray-300 rounded text-center font-bold text-lg focus:outline-none focus:border-red-500" data-id="${playerId}" value="${currentVal}">
-                            <button class="btn-plus bg-white border border-gray-300 text-gray-700 font-bold w-10 h-10 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-xl">+</button>
+                let card = document.getElementById(`scoring-card-${playerId}`);
+                if (!card) {
+                    card = document.createElement('div');
+                    card.id = `scoring-card-${playerId}`;
+                    card.setAttribute('data-player-id', playerId);
+                    card.className = "bg-white p-4 rounded-xl shadow-sm border border-gray-200";
+                    card.innerHTML = `
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="font-bold text-gray-800 text-lg player-name-text">${pName}</div>
+                            <div class="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded player-total-score">累計: ${pTotal}pt</div>
                         </div>
-                    </div>
-                `;
+                        <div class="text-base ${isAnswered ? 'text-gray-800 font-bold' : 'text-gray-400'} bg-gray-50 p-3 rounded mb-3 break-all player-answer-text">
+                            ${pAnswer}
+                        </div>
+                        
+                        <div class="flex flex-wrap items-center justify-between gap-2 bg-red-50 p-3 rounded-lg border border-red-100 mt-2">
+                            <button class="btn-correct bg-white border border-gray-300 text-gray-800 font-bold py-2 px-4 rounded shadow-sm hover:bg-gray-100 whitespace-nowrap">
+                                +${gameSettings.point_base} (正解)
+                            </button>
+                            
+                            <div class="flex items-center gap-1">
+                                <button class="btn-minus bg-white border border-gray-300 text-gray-700 font-bold w-10 h-10 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-xl">-</button>
+                                <input type="text" class="score-input w-16 h-10 border border-gray-300 rounded text-center font-bold text-lg focus:outline-none focus:border-red-500" data-id="${playerId}" value="${currentVal}">
+                                <button class="btn-plus bg-white border border-gray-300 text-gray-700 font-bold w-10 h-10 rounded shadow-sm hover:bg-gray-100 flex items-center justify-center text-xl">+</button>
+                            </div>
+                        </div>
+                    `;
 
-                // ボタンイベント
-                const btnCorrect = div.querySelector('.btn-correct');
-                const btnMinus = div.querySelector('.btn-minus');
-                const btnPlus = div.querySelector('.btn-plus');
-                const input = div.querySelector('.score-input');
+                    // ボタンイベント
+                    const btnCorrect = card.querySelector('.btn-correct');
+                    const btnMinus = card.querySelector('.btn-minus');
+                    const btnPlus = card.querySelector('.btn-plus');
+                    const input = card.querySelector('.score-input');
 
-                btnCorrect.addEventListener('click', () => adjustScore(playerId, gameSettings.point_base));
-                btnMinus.addEventListener('click', () => adjustScore(playerId, -gameSettings.point_step));
-                btnPlus.addEventListener('click', () => adjustScore(playerId, gameSettings.point_step));
+                    btnCorrect.addEventListener('click', () => adjustScore(playerId, gameSettings.point_base));
+                    btnMinus.addEventListener('click', () => adjustScore(playerId, -gameSettings.point_step));
+                    btnPlus.addEventListener('click', () => adjustScore(playerId, gameSettings.point_step));
 
-                input.addEventListener('change', (e) => {
-                    let val = toHalfWidth(e.target.value);
-                    let num = parseInt(val, 10);
-                    if (isNaN(num)) num = 0;
-                    e.target.value = num;
-                    updatePlayerScore(playerId, num);
-                });
+                    input.addEventListener('change', (e) => {
+                        let val = toHalfWidth(e.target.value);
+                        let num = parseInt(val, 10);
+                        if (isNaN(num)) num = 0;
+                        e.target.value = num;
+                        updatePlayerScore(playerId, num);
+                    });
 
-                container.appendChild(div);
+                    container.appendChild(card);
+                } else {
+                    // 既存カードの更新（入力中状態を維持）
+                    card.querySelector('.player-name-text').textContent = pName;
+                    card.querySelector('.player-total-score').textContent = `累計: ${pTotal}pt`;
+                    const answerDiv = card.querySelector('.player-answer-text');
+                    answerDiv.className = `text-base ${isAnswered ? 'text-gray-800 font-bold' : 'text-gray-400'} bg-gray-50 p-3 rounded mb-3 break-all player-answer-text`;
+                    answerDiv.textContent = pAnswer;
+                    
+                    const btnCorrect = card.querySelector('.btn-correct');
+                    btnCorrect.textContent = `+${gameSettings.point_base} (正解)`;
+
+                    const input = card.querySelector('.score-input');
+                    if (document.activeElement !== input) {
+                        input.value = currentVal;
+                    }
+                }
             });
         }
 
@@ -467,8 +513,8 @@
 
                 hideLoading();
                 alert("リセットが完了しました。");
-                // セットアップ画面に戻る
-                window.location.href = `game_setup.html?id=${projectId}`;
+                // scorer画面（待機状態）のままにするためリロード
+                window.location.reload();
 
             } catch (e) {
                 console.error(e);
